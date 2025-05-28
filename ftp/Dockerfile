@@ -4,6 +4,7 @@ RUN apt-get update && \
     apt-get install -y vsftpd && \
     useradd -m ftpuser && echo "ftpuser:ftppass" | chpasswd && \
     mkdir -p /home/ftpuser/uploads && \
+    mkdir -p /var/run/vsftpd/empty && \
     chown ftpuser:ftpuser /home/ftpuser/uploads
 
 COPY vsftpd.conf /etc/vsftpd.conf
