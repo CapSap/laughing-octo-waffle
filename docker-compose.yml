@@ -10,7 +10,7 @@ services:
 
   node-app:
     build: ./upload-app
-    container_name: file-watcher
+    container_name: node-uploader
     volumes:
       - shared-data:/uploads
     depends_on:
