@@ -1,5 +1,5 @@
-
 # Basic SSH settings
+
 Port 22
 Protocol 2
 PermitRootLogin no
@@ -8,14 +8,18 @@ ChallengeResponseAuthentication no
 UsePAM yes
 
 # SFTP subsystem uses internal-sftp (built-in)
+
 Subsystem sftp internal-sftp
 
 # Restrict only the sftpuser
+
 AllowUsers sftpuser
 
 # Match block for sftpuser to restrict them to SFTP in chroot jail
+
 Match User sftpuser
-    ChrootDirectory /home/sftpuser
-    ForceCommand internal-sftp
-    AllowTCPForwarding no
-    X11Forwarding no
+ChrootDirectory /home/sftpuser
+ForceCommand internal-sftp
+ForceCommand internal-sftp -d /uploads
+AllowTCPForwarding no
+X11Forwarding no
