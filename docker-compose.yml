@@ -16,5 +16,13 @@ services:
     depends_on:
       - sftp-server
 
+  pro-ftpd:
+    build: ./pro
+    container_name: proftpd-sftp-server
+    ports:
+      - "2222:22" # External port 2222 maps to container's internal port 22
+    volumes:
+      - shared-data:/home/sftpuser/uploads
+
 volumes:
   shared-data:
