@@ -19,7 +19,6 @@ AllowUsers sftpuser
 
 Match User sftpuser
 ChrootDirectory /home/sftpuser
-ForceCommand internal-sftp
 ForceCommand internal-sftp -d /uploads
 AllowTCPForwarding no
 X11Forwarding no
