@@ -6,7 +6,7 @@ services:
       - "22:22"
       - "21000-21010:21000-21010"
     volumes:
-      - shared-data:/home/ftpuser/uploads
+      - shared-data:/home/sftpuser/uploads
 
   node-app:
     build: ./upload-app
