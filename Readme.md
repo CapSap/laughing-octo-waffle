@@ -13,3 +13,10 @@
 ## node setup notes
 
 i wanted to use ts, and this may complicate the docker stuff a bit. (we have to compile ts into js)
+
+keep this
+sftp-server:
+build: ./sftp
+container_name: sftp-server
+ports: - "22:22" - "21000-21010:21000-21010"
+volumes: - shared-data:/home/sftpuser/uploads
