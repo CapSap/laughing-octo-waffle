@@ -7,9 +7,8 @@ RUN apt-get update && apt-get install -y \
     openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
-RUN id proftpd && getent group | grep proftpd
-
-RUN cat /etc/passwd | grep proftpd || echo "No proftpd user found"
+    # Create proftpd group and assign proftpd user to it
+RUN groupadd proftpd && usermod -g proftpd proftpd
 
 # Create SFTP user for file uploads
 RUN useradd -m -d /home/sftpuser -s /bin/false sftpuser && \
@@ -20,29 +19,36 @@ RUN useradd -m -d /home/sftpuser -s /bin/false sftpuser && \
 # Generate server host key (simplified to just RSA for now)
 RUN mkdir -p /etc/proftpd/keys && \
     ssh-keygen -t rsa -b 2048 -f /etc/proftpd/keys/sftp_rsa_host_key -N "" && \
-    chown -R proftpd /etc/proftpd/keys && \
+    chown -R proftpd:proftpd /etc/proftpd/keys && \
     chmod 600 /etc/proftpd/keys/*
 
 # Setup client authentication directory
 RUN mkdir -p /etc/proftpd/authorized_keys && \
-    chown proftpd /etc/proftpd/authorized_keys
+    chown proftpd:proftpd /etc/proftpd/authorized_keys
 
-# Copy client's public key
-COPY sftp_app_key.pub /etc/proftpd/authorized_keys/sftpuser
+
+# Copy the original OpenSSH public key to a temporary location in the image
+COPY sftp_app_key.pub /tmp/sftp_app_openssh.pub
+
+# Convert the OpenSSH public key to RFC4716 format and place it in the final location.
+# The `ssh-keygen -e` command outputs to standard output, so we redirect it.
+# Then, clean up the temporary file.
+RUN ssh-keygen -e -f /tmp/sftp_app_openssh.pub -m RFC4716 > /etc/proftpd/authorized_keys/sftpuser && \
+    rm /tmp/sftp_app_openssh.pub
+
+# Set the correct ownership and permissions on the final RFC4716 formatted key file
 RUN chmod 644 /etc/proftpd/authorized_keys/sftpuser && \
-    chown proftpd /etc/proftpd/authorized_keys/sftpuser
+    chown proftpd:proftpd /etc/proftpd/authorized_keys/sftpuser
 
-# Copy ProFTPD configuration
+    # Copy ProFTPD configuration
 COPY proftpd.conf /etc/proftpd/proftpd.conf
 
 # Create log directory
 RUN mkdir -p /var/log/proftpd && \
-    chown proftpd /var/log/proftpd
+    chown proftpd:proftpd /var/log/proftpd
 
 # Expose SFTP port (changed to 2222 to match config)
 EXPOSE 2222
 
 # Start ProFTPD in foreground
 CMD ["/usr/sbin/proftpd", "--nodaemon", "--config", "/etc/proftpd/proftpd.conf"]
-
-
