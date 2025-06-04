@@ -1,21 +1,4 @@
 services:
-  sftp-server:
-    build: ./sftp
-    container_name: sftp-server
-    ports:
-      - "22:22"
-      - "21000-21010:21000-21010"
-    volumes:
-      - shared-data:/home/sftpuser/uploads
-
-  node-app:
-    build: ./upload-app
-    container_name: node-uploader
-    volumes:
-      - shared-data:/uploads
-    depends_on:
-      - sftp-server
-
   pro-ftpd:
     build: ./pro
     container_name: proftpd-sftp-server
@@ -23,6 +6,13 @@ services:
       - "2222:22" # External port 2222 maps to container's internal port 22
     volumes:
       - shared-data:/home/sftpuser/uploads
+  node-app:
+    build: ./upload-app
+    container_name: node-uploader
+    volumes:
+      - shared-data:/uploads
+    depends_on:
+      - pro-ftpd
 
 volumes:
   shared-data:
