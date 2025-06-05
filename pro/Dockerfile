@@ -26,9 +26,9 @@ RUN mkdir -p /etc/proftpd/keys && \
 RUN mkdir -p /etc/proftpd/authorized_keys && \
     chown proftpd:proftpd /etc/proftpd/authorized_keys
 
-
 # Copy the original OpenSSH public key to a temporary location in the image
 COPY sftp_app_key.pub /tmp/sftp_app_openssh.pub
+COPY she_ftp_key.pub /tmp/she_ftp_key_openssh.pub
 
 # Convert the OpenSSH public key to RFC4716 format and place it in the final location.
 # The `ssh-keygen -e` command outputs to standard output, so we redirect it.
@@ -36,6 +36,8 @@ COPY sftp_app_key.pub /tmp/sftp_app_openssh.pub
 RUN ssh-keygen -e -f /tmp/sftp_app_openssh.pub -m RFC4716 > /etc/proftpd/authorized_keys/sftpuser && \
     rm /tmp/sftp_app_openssh.pub
 
+RUN ssh-keygen -e -f /tmp/she_ftp_key_openssh.pub -m RFC4716 >> /etc/proftpd/authorized_keys/sftpuser && \
+    rm /tmp/she_ftp_key_openssh.pub
 # Set the correct ownership and permissions on the final RFC4716 formatted key file
 RUN chmod 644 /etc/proftpd/authorized_keys/sftpuser && \
     chown proftpd:proftpd /etc/proftpd/authorized_keys/sftpuser
