@@ -39,7 +39,7 @@ async function main() {
     watchTimers[filename] = setTimeout(() => {
       delete watchTimers[filename]; // Remove the timer once it fires
 
-      fs.stat(fullPath, (err, stats) => {
+      fs.stat(fullPath, async (err, stats) => {
         if (err) {
           if (err.code === "ENOENT") {
             console.log(`File was deleted or renamed: ${filename}`);
@@ -52,6 +52,30 @@ async function main() {
         if (stats.isFile()) {
           console.log(`Detected new file: ${filename}`);
           // make the query here
+          const testQuery = `
+            query {
+              shop {
+                name
+                myshopifyDomain
+              }
+            }
+          `;
+          const client = getShopifyGraphqlClient();
+          try {
+            const result = await client.query({ data: { query: testQuery } });
+            console.log(
+              `Successfully queried shop details for ${filename}:`,
+              result
+            );
+
+            // TODO: Replace with your actual file upload logic
+            // (e.g., read file, stagedUploadsCreate, HTTP PUT, then another GraphQL mutation)
+          } catch (e) {
+            console.error(
+              `Failed to process file ${filename} with Shopify API:`,
+              e
+            );
+          }
         }
       });
     }, debounceDelay);
