@@ -1,48 +1,61 @@
 import fs from "fs";
 import path from "path";
+import { initShopify } from "./shop";
 
 const uploadsDir = "/uploads";
 console.log(`Watching ${uploadsDir}...`);
 const debounceDelay = 500; // milliseconds
 const watchTimers: Record<string, NodeJS.Timeout> = {};
 
-fs.watch(uploadsDir, (eventType, filename) => {
-  if (!filename) {
-    console.log(`Change detected but no filename provided.`);
-    return;
+async function main() {
+  try {
+    await initShopify();
+  } catch (e) {
+    console.error("was not able to init shopify client", e);
   }
 
-  const fullPath = path.join(uploadsDir, filename);
+  fs.watch(uploadsDir, (eventType, filename) => {
+    if (!filename) {
+      console.log(`Change detected but no filename provided.`);
+      return;
+    }
 
-  // proftpd's option HiddenStores writes files to a temp filename .in.*
-  if (filename.startsWith(".in.")) {
-    console.log(`Ignoring temporary file: ${filename} (prefix .in. detected)`);
-    return;
-  }
+    const fullPath = path.join(uploadsDir, filename);
 
-  // Clear any existing timer for this file
-  if (watchTimers[filename]) {
-    clearTimeout(watchTimers[filename]);
-  }
+    // proftpd's option HiddenStores writes files to a temp filename .in.*
+    if (filename.startsWith(".in.")) {
+      console.log(
+        `Ignoring temporary file: ${filename} (prefix .in. detected)`
+      );
+      return;
+    }
 
-  // Set a new timer
-  watchTimers[filename] = setTimeout(() => {
-    delete watchTimers[filename]; // Remove the timer once it fires
+    // Clear any existing timer for this file
+    if (watchTimers[filename]) {
+      clearTimeout(watchTimers[filename]);
+    }
 
-    fs.stat(fullPath, (err, stats) => {
-      if (err) {
-        if (err.code === "ENOENT") {
-          console.log(`File was deleted or renamed: ${filename}`);
-        } else {
-          console.error(`Error accessing ${filename}:`, err);
+    // Set a new timer
+    watchTimers[filename] = setTimeout(() => {
+      delete watchTimers[filename]; // Remove the timer once it fires
+
+      fs.stat(fullPath, (err, stats) => {
+        if (err) {
+          if (err.code === "ENOENT") {
+            console.log(`File was deleted or renamed: ${filename}`);
+          } else {
+            console.error(`Error accessing ${filename}:`, err);
+          }
+          return;
         }
-        return;
-      }
 
-      if (stats.isFile()) {
-        console.log(`Detected new file: ${filename}`);
-        // make the query here
-      }
-    });
-  }, debounceDelay);
-});
+        if (stats.isFile()) {
+          console.log(`Detected new file: ${filename}`);
+          // make the query here
+        }
+      });
+    }, debounceDelay);
+  });
+}
+
+main();
