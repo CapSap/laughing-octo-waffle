@@ -1,8 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { initShopify } from "./shop";
+import "dotenv/config";
+import { getShopifyGraphqlClient, initShopify } from "./shop";
 
-const uploadsDir = "/uploads";
+// const uploadsDir = "/uploads";
+const uploadsDir = path.join(__dirname, "uploads");
 console.log(`Watching ${uploadsDir}...`);
 const debounceDelay = 500; // milliseconds
 const watchTimers: Record<string, NodeJS.Timeout> = {};
