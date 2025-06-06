@@ -1,11 +1,26 @@
 import "@shopify/shopify-api/adapters/node";
-import { shopifyApi, ApiVersion } from "@shopify/shopify-api";
+import { shopifyApi, ApiVersion, Session } from "@shopify/shopify-api";
 
-// For an independent Node.js server using a Custom App / Private App token
+type ShopifyApiReturnType = ReturnType<typeof shopifyApi>;
+type GraphqlClientConstructor = ShopifyApiReturnType["clients"]["Graphql"];
 
-function doQuery() {
-  if (!process.env.SHOPIFY_API_SECRET_KEY || !process.env.SERVER_HOST) {
-    console.log("missing key");
+// global var
+let client: InstanceType<GraphqlClientConstructor> | null = null; // Use InstanceType here, and allow it to be null initially
+
+export async function initShopify() {
+  if (
+    !process.env.SHOPIFY_API_SECRET_KEY ||
+    !process.env.SERVER_HOST ||
+    !process.env.SHOPIFY_SHOP_DOMAIN
+  ) {
+    const missingVars = [
+      "SHOPIFY_API_KEY",
+      "SHOPIFY_API_SECRET_KEY",
+      "SERVER_HOST",
+      "SHOPIFY_SHOP_DOMAIN",
+      "SHOPIFY_CUSTOM_APP_ADMIN_ACCESS_TOKEN",
+    ].filter((envVar) => !process.env[envVar]);
+    console.log("missing key", missingVars);
     return;
   }
 
@@ -15,6 +30,33 @@ function doQuery() {
     scopes: ["write_files"],
     apiVersion: ApiVersion.July25,
     hostName: process.env.SERVER_HOST,
+    hostScheme: "http",
     isEmbeddedApp: false,
+    logger: {
+      log: (severity, message) => {
+        console.log(severity, message);
+      },
+    },
   });
+
+  const session = new Session({
+    id: "custom_app_session_id", // Can be a static ID for your private app
+    shop: process.env.SHOPIFY_SHOP_DOMAIN,
+    state: "STATE_NOT_REQUIRED_FOR_PRIVATE_APP", // OAuth state, not needed for private app
+    isOnline: false, // Private app tokens are generally considered "offline" as they don't expire based on user presence
+    accessToken: process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN,
+    scopes: ["write_files"],
+  });
+
+  // 3. You can now use this session to create a GraphQL client:
+  client = new shopify.clients.Graphql({ session });
+}
+
+export function getShopifyGraphqlClient() {
+  if (!client) {
+    throw new Error(
+      "Shopify GraphQL client has not been initialized. Call initializeShopifyClient() first."
+    );
+  }
+  return client;
 }
