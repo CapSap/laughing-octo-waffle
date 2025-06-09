@@ -9,16 +9,18 @@ let client: InstanceType<GraphqlClientConstructor> | null = null; // Use Instanc
 
 export async function initShopify() {
   if (
-    !process.env.SHOPIFY_API_SECRET_KEY ||
+    !process.env.SHOPIFY_SHOP_DOMAIN ||
     !process.env.SERVER_HOST ||
-    !process.env.SHOPIFY_SHOP_DOMAIN
+    !process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN ||
+    !process.env.SHOPIFY_API_KEY ||
+    !process.env.SHOPIFY_API_SECRET_KEY
   ) {
     const missingVars = [
+      "SHOPIFY_SHOP_DOMAIN",
+      "SERVER_HOST",
+      "SHOPIFY_ADMIN_API_ACCESS_TOKEN",
       "SHOPIFY_API_KEY",
       "SHOPIFY_API_SECRET_KEY",
-      "SERVER_HOST",
-      "SHOPIFY_SHOP_DOMAIN",
-      "SHOPIFY_CUSTOM_APP_ADMIN_ACCESS_TOKEN",
     ].filter((envVar) => !process.env[envVar]);
     console.log("missing key", missingVars);
     return;
@@ -44,8 +46,8 @@ export async function initShopify() {
     shop: process.env.SHOPIFY_SHOP_DOMAIN,
     state: "STATE_NOT_REQUIRED_FOR_PRIVATE_APP", // OAuth state, not needed for private app
     isOnline: false, // Private app tokens are generally considered "offline" as they don't expire based on user presence
-    accessToken: process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN,
     scopes: ["write_files"],
+    accessToken: process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN,
   });
 
   // 3. You can now use this session to create a GraphQL client:
