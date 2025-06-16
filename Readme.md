@@ -10,11 +10,18 @@
 3. mv the file from /uploads to a /archive dir
 4. and maybe once a week do a cleanup of all files in archive
 
+# todos
+
+- [ ] move the file after we're done with it
+- [ ] make the graph ql upload of the file and get a success or not
+- [ ]
+
 ## node setup notes
 
 i wanted to use ts, and this may complicate the docker stuff a bit. (we have to compile ts into js)
 
-keep this
+### keep this
+
 sftp-server:
 build: ./sftp
 container_name: sftp-server
