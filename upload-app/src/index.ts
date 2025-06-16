@@ -8,9 +8,9 @@ import { getShopifyGraphqlClient, initShopify } from "./shop";
 const uploadsDir = path.join(__dirname, "uploads");
 fs.mkdir(uploadsDir, { recursive: true }, (err) => {
   if (err) {
-    console.error('Error creating directory:', err);
+    console.error("Error creating directory:", err);
   } else {
-    console.log('Directory created successfully!');
+    console.log("Directory created successfully!");
   }
 });
 
