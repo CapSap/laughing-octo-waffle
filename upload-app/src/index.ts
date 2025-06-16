@@ -3,8 +3,17 @@ import path from "path";
 import "dotenv/config";
 import { getShopifyGraphqlClient, initShopify } from "./shop";
 
+// test a local uploads folder
 // const uploadsDir = "/uploads";
 const uploadsDir = path.join(__dirname, "uploads");
+fs.mkdir(uploadsDir, { recursive: true }, (err) => {
+  if (err) {
+    console.error('Error creating directory:', err);
+  } else {
+    console.log('Directory created successfully!');
+  }
+});
+
 console.log(`Watching ${uploadsDir}...`);
 const debounceDelay = 500; // milliseconds
 const watchTimers: Record<string, NodeJS.Timeout> = {};
