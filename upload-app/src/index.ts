@@ -63,24 +63,16 @@ async function main() {
         if (stats.isFile()) {
           console.log(`Detected new file: ${filename}`);
           // make the query here
-          const testQuery = `
-            query {
-              shop {
-                name
-                myshopifyDomain
-              }
-            }
-          `;
+
+          /* 3 step process:
+          1. generate the upload url via stagedUploadsCreate
+          2. upload via http post
+          3. "register" the file on the Files API via fileCreate (and overwrite the existing file)
+          */
+
           const client = getShopifyGraphqlClient();
           try {
-            const result = await client.query({ data: { query: testQuery } });
-            console.log(
-              `Successfully queried shop details for ${filename}:`,
-              result
-            );
-
-            // TODO: Replace with your actual file upload logic
-            // (e.g., read file, stagedUploadsCreate, HTTP PUT, then another GraphQL mutation)
+            const result = await client.query({ data: {} });
           } catch (e) {
             console.error(
               `Failed to process file ${filename} with Shopify API:`,
