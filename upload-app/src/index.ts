@@ -3,7 +3,10 @@ import { readFile } from "fs/promises";
 import path from "path";
 import "dotenv/config";
 import { getShopifyGraphqlClient, initShopify } from "./shop";
-import FormData from "form-data";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // test a local uploads folder
 // const uploadsDir = "/uploads";
@@ -132,14 +135,14 @@ async function main() {
             formData.append(param.name, param.value);
           });
           // Read your file into a buffer
-          const fileBuffer = await readFile(fullPath); // returns a Buffer by default
-          formData.append("file", fileBuffer, { filename: filename });
+          const fileBuffer = await readFile(fullPath);
+          const file = new File([fileBuffer], filename, { type: "text/csv" });
+          formData.append("file", file);
 
           try {
             const response = await fetch(uploadUrl, {
               method: "POST",
               body: formData,
-              headers: formData.getHeaders(),
             });
           } catch (e) {
             console.error(
