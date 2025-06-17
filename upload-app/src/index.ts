@@ -2,9 +2,10 @@ import fs from "fs";
 import { readFile } from "fs/promises";
 import path from "path";
 import "dotenv/config";
-import { getShopifyGraphqlClient, initShopify } from "./shop";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+
+import { getShopifyGraphqlClient, initShopify } from "./shop.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -75,6 +76,7 @@ async function main() {
           // shared variables across scoped try blocks
           let client;
           let uploadUrl;
+          let resourceUrl;
           let params: { name: string; value: string }[];
           // stagedUploads graphql setup (so we can get the url we can upload to)
           const stagedUploadsCreateMutation = `
@@ -146,11 +148,51 @@ async function main() {
               method: "POST",
               body: formData,
             });
+            console.log("fetch response");
+            console.dir(response, { depth: null, colors: true });
           } catch (e) {
             console.error(
               `Failed to upload file ${filename} via http fetch:`,
               e
             );
+            return;
+          }
+          // final step: "register" the uploaded file with Shopify using fileCreate mutation
+          const fileCreateMutation = `
+  mutation fileCreate($files: [FileCreateInput!]!) {
+    fileCreate(files: $files) {
+      files {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+          const fileCreateVariables = {
+            files: [
+              {
+                originalSource: resourceUrl, // Note: response.url here is likely NOT the final file URL
+                contentType: "FILE",
+                alt: `Uploaded CSV file from node at ${new Date().toUTCString()}`, // optional
+              },
+            ],
+          };
+
+          try {
+            const fileCreateResponse = await client.request(
+              fileCreateMutation,
+              {
+                variables: fileCreateVariables,
+              }
+            );
+            console.log("File create response:");
+            console.dir(fileCreateResponse, { depth: null, colors: true });
+          } catch (e) {
+            console.error("Failed to register file via fileCreate:", e);
           }
         }
       });
