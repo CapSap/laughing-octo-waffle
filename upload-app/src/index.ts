@@ -1,7 +1,9 @@
 import fs from "fs";
+import { readFile } from "fs/promises";
 import path from "path";
 import "dotenv/config";
 import { getShopifyGraphqlClient, initShopify } from "./shop";
+import FormData from "form-data";
 
 // test a local uploads folder
 // const uploadsDir = "/uploads";
@@ -62,12 +64,12 @@ async function main() {
 
         if (stats.isFile()) {
           console.log(`Detected new file: ${filename}`);
-                    /* 3 step process:
+          /* 3 step process:
           1. generate the upload url via stagedUploadsCreate
           2. upload via http post
           3. "register" the file on the Files API via fileCreate (and overwrite the existing file)
           */
-// shared variables across scoped try blocks
+          // shared variables across scoped try blocks
           let client;
           let uploadUrl;
           let params: { name: string; value: string }[];
@@ -120,6 +122,28 @@ async function main() {
           } catch (e) {
             console.error(
               `Failed to process file ${filename} with Shopify API:`,
+              e
+            );
+            return;
+          }
+          // setup for fetch
+          const formData = new FormData();
+          params.forEach((param) => {
+            formData.append(param.name, param.value);
+          });
+          // Read your file into a buffer
+          const fileBuffer = await readFile(fullPath); // returns a Buffer by default
+          formData.append("file", fileBuffer, { filename: filename });
+
+          try {
+            const response = await fetch(uploadUrl, {
+              method: "POST",
+              body: formData,
+              headers: formData.getHeaders(),
+            });
+          } catch (e) {
+            console.error(
+              `Failed to upload file ${filename} via http fetch:`,
               e
             );
           }
