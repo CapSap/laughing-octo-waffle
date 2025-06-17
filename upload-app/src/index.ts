@@ -62,17 +62,61 @@ async function main() {
 
         if (stats.isFile()) {
           console.log(`Detected new file: ${filename}`);
-          // make the query here
-
-          /* 3 step process:
+                    /* 3 step process:
           1. generate the upload url via stagedUploadsCreate
           2. upload via http post
           3. "register" the file on the Files API via fileCreate (and overwrite the existing file)
           */
+// shared variables across scoped try blocks
+          let client;
+          let uploadUrl;
+          let params: { name: string; value: string }[];
+          // stagedUploads graphql setup (so we can get the url we can upload to)
+          const stagedUploadsCreateMutation = `
+              mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
+                stagedUploadsCreate(input: $input) {
+                  stagedTargets {
+                    url
+                    resourceUrl
+                    parameters {
+                      name
+                      value
+                    }
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }
+            `;
+          const variables = {
+            input: [
+              {
+                resource: "BULK_MUTATION_VARIABLES", // or "IMAGE" etc.
+                filename: filename,
+                mimeType: "text/csv",
+                fileSize: stats.size.toString(), // size in bytes
+              },
+            ],
+          };
 
-          const client = getShopifyGraphqlClient();
           try {
-            const result = await client.query({ data: {} });
+            client = getShopifyGraphqlClient();
+            const response = await client.request(stagedUploadsCreateMutation, {
+              variables: variables,
+              retries: 2,
+            });
+            console.log("Staged upload response:");
+            console.dir(response.data, { depth: null, colors: true });
+
+            // set url and params
+            uploadUrl = response.data.stagedUploadsCreate.stagedTargets[0].url;
+            params =
+              response.data.stagedUploadsCreate.stagedTargets[0].parameters;
+
+            console.log("Extensions:");
+            console.dir(response.extensions, { depth: null, colors: true });
           } catch (e) {
             console.error(
               `Failed to process file ${filename} with Shopify API:`,
