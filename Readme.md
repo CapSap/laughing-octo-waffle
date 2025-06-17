@@ -13,8 +13,8 @@
 # todos
 
 - [x] stagedUploadsCreate to get a url to upload to
-- [ ] upload via http post
-- [ ] FileCreate "create" a file- make it avaliavle in the files api
+- [x] upload via http post (but i have not tested yet.)
+- [x] FileCreate "create" a file- make it avaliavle in the files api
 - [ ] move the file after we're done with it
 
 ## node setup notes
