@@ -116,9 +116,11 @@ async function main() {
             console.dir(response.data, { depth: null, colors: true });
 
             // set url and params
-            uploadUrl = response.data.stagedUploadsCreate.stagedTargets[0].url;
-            params =
-              response.data.stagedUploadsCreate.stagedTargets[0].parameters;
+            const stagedTargets =
+              response.data.stagedUploadsCreate.stagedTargets[0];
+            uploadUrl = stagedTargets.url;
+            resourceUrl = stagedTargets.resourceUrl;
+            params = stagedTargets.parameters;
 
             console.log("Extensions:");
             console.dir(response.extensions, { depth: null, colors: true });
