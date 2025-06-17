@@ -12,7 +12,7 @@
 
 # todos
 
-- [ ] stagedUploadsCreate to get a url to upload to
+- [x] stagedUploadsCreate to get a url to upload to
 - [ ] upload via http post
 - [ ] FileCreate "create" a file- make it avaliavle in the files api
 - [ ] move the file after we're done with it
