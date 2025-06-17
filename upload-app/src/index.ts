@@ -100,10 +100,11 @@ async function main() {
           const variables = {
             input: [
               {
-                resource: "BULK_MUTATION_VARIABLES", // or "IMAGE" etc.
+                resource: "FILE", // or "IMAGE" etc.
                 filename: filename,
                 mimeType: "text/csv",
                 fileSize: stats.size.toString(), // size in bytes
+                httpMethod: "POST",
               },
             ],
           };
@@ -140,8 +141,11 @@ async function main() {
           });
           // Read your file into a buffer
           const fileBuffer = await readFile(fullPath);
-          const file = new File([fileBuffer], filename, { type: "text/csv" });
-          formData.append("file", file);
+          const file = new File([fileBuffer], filename);
+          const blob = new Blob([fileBuffer], { type: "text/csv" }); // optional mime type
+          // formData.append("file", file, filename);
+          // formData.append("file", fileBuffer);
+          formData.append("file", blob, filename);
 
           try {
             const response = await fetch(uploadUrl, {
@@ -149,7 +153,22 @@ async function main() {
               body: formData,
             });
             console.log("fetch response");
-            console.dir(response, { depth: null, colors: true });
+            console.log("Status:", response.status);
+            console.log("Status Text:", response.statusText);
+            console.log("OK:", response.ok);
+            console.log("Headers:");
+            for (const [key, value] of response.headers.entries()) {
+              console.log(`  ${key}: ${value}`);
+            }
+            const responseText = await response.text();
+            console.log("Response Body:", responseText);
+            if (!response.ok) {
+              console.error(
+                `Upload failed with status ${response.status}: ${response.statusText}`
+              );
+              console.error("Response body:", responseText);
+              return;
+            }
           } catch (e) {
             console.error(
               `Failed to upload file ${filename} via http fetch:`,
@@ -176,8 +195,8 @@ async function main() {
             files: [
               {
                 originalSource: resourceUrl, // Note: response.url here is likely NOT the final file URL
-                contentType: "FILE",
                 alt: `Uploaded CSV file from node at ${new Date().toUTCString()}`, // optional
+                filename: filename,
               },
             ],
           };
