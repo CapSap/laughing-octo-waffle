@@ -25,6 +25,9 @@ const debounceDelay = 500; // milliseconds
 const watchTimers: Record<string, NodeJS.Timeout> = {};
 
 async function main() {
+  // id of file uploaded to eb
+  let lastUploadedFileId: string | null = null;
+
   try {
     await initShopify();
   } catch (e) {
@@ -78,6 +81,46 @@ async function main() {
           let uploadUrl;
           let resourceUrl;
           let params: { name: string; value: string }[];
+
+          // init the client
+          try {
+            client = getShopifyGraphqlClient();
+          } catch (e) {
+            console.error("not able to get a shopify graphql client", e);
+            return;
+          }
+
+          if (lastUploadedFileId !== null) {
+            console.log("Deleting previous file:", lastUploadedFileId);
+
+            // Example delete mutation here
+            const deleteFileMutation = `
+              mutation fileDelete($fileIds: [ID!]!) {
+                fileDelete(fileIds: $fileIds) {
+                  deletedFileIds
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }
+            `;
+
+            const deleteFileVariables = {
+              fileIds: [lastUploadedFileId],
+            };
+
+            try {
+              const deleteResponse = await client.request(deleteFileMutation, {
+                variables: deleteFileVariables,
+              });
+              console.log("File delete response:");
+              console.dir(deleteResponse, { depth: null, colors: true });
+            } catch (e) {
+              console.error("Failed to delete previous file:", e);
+            }
+          }
+
           // stagedUploads graphql setup (so we can get the url we can upload to)
           const stagedUploadsCreateMutation = `
               mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
@@ -110,7 +153,6 @@ async function main() {
           };
 
           try {
-            client = getShopifyGraphqlClient();
             const response = await client.request(stagedUploadsCreateMutation, {
               variables: variables,
               retries: 2,
@@ -210,6 +252,7 @@ async function main() {
             );
             console.log("File create response:");
             console.dir(fileCreateResponse, { depth: null, colors: true });
+            lastUploadedFileId = fileCreateResponse.data.fileCreate.files[0].id;
           } catch (e) {
             console.error("Failed to register file via fileCreate:", e);
           }
