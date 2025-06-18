@@ -144,7 +144,7 @@ async function main() {
             input: [
               {
                 resource: "FILE", // or "IMAGE" etc.
-                filename: filename,
+                filename: "eb-soh.csv",
                 mimeType: "text/csv",
                 fileSize: stats.size.toString(), // size in bytes
                 httpMethod: "POST",
@@ -187,7 +187,7 @@ async function main() {
           const blob = new Blob([fileBuffer], { type: "text/csv" }); // optional mime type
           // formData.append("file", file, filename);
           // formData.append("file", fileBuffer);
-          formData.append("file", blob, filename);
+          formData.append("file", blob, "eb-soh.csv");
 
           try {
             const response = await fetch(uploadUrl, {
@@ -238,7 +238,7 @@ async function main() {
               {
                 originalSource: resourceUrl, // Note: response.url here is likely NOT the final file URL
                 alt: `Uploaded CSV file from node at ${new Date().toUTCString()}`, // optional
-                filename: filename,
+                filename: "eb-soh.csv",
               },
             ],
           };
