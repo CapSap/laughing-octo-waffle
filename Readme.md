@@ -16,6 +16,7 @@
 - [x] upload via http post (but i have not tested yet.)
 - [x] FileCreate "create" a file- make it avaliavle in the files api
 - [ ] move the file after we're done with it
+- [x] store the id of the uploaded file to delete on the next upload
 
 ## node setup notes
 
