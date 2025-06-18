@@ -7,16 +7,24 @@ import { dirname } from "path";
 
 import { getShopifyGraphqlClient, initShopify } from "./shop.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
 // test a local uploads folder
-const uploadsDir = "/uploads";
+// const __dirname = dirname(fileURLToPath(import.meta.url));
 // const uploadsDir = path.join(__dirname, "uploads");
+const uploadsDir = "/uploads";
+const archiveDir = "/archive";
 fs.mkdir(uploadsDir, { recursive: true }, (err) => {
   if (err) {
-    console.error("Error creating directory:", err);
+    console.error("Error creating uploads directory:", err);
   } else {
-    console.log("Directory created successfully!");
+    console.log("uploads Directory created successfully!");
+  }
+});
+
+fs.mkdir(archiveDir, { recursive: true }, (err) => {
+  if (err) {
+    console.error("Error creating archive directory:", err);
+  } else {
+    console.log("archive Directory created successfully!");
   }
 });
 
