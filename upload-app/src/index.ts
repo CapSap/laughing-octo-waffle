@@ -5,13 +5,11 @@ import "dotenv/config";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
-import { getShopifyGraphqlClient, initShopify } from "./shop.js";
+import { uploadsDir } from "./utils/config.js";
 
-// test a local uploads folder
-// const __dirname = dirname(fileURLToPath(import.meta.url));
-// const uploadsDir = path.join(__dirname, "uploads");
-const uploadsDir = "/uploads";
-const archiveDir = "/archive";
+import { getShopifyGraphqlClient, initShopify } from "./shop.js";
+import { cleanupOldFiles } from "./utils/cleanup.js";
+
 fs.mkdir(uploadsDir, { recursive: true }, (err) => {
   if (err) {
     console.error("Error creating uploads directory:", err);
@@ -20,13 +18,9 @@ fs.mkdir(uploadsDir, { recursive: true }, (err) => {
   }
 });
 
-fs.mkdir(archiveDir, { recursive: true }, (err) => {
-  if (err) {
-    console.error("Error creating archive directory:", err);
-  } else {
-    console.log("archive Directory created successfully!");
-  }
-});
+// run the cleanup func every day, remove files older than 30 days
+const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // every 24 hours
+setInterval(cleanupOldFiles, CLEANUP_INTERVAL_MS);
 
 console.log(`Watching ${uploadsDir}...`);
 const debounceDelay = 500; // milliseconds
