@@ -15,8 +15,17 @@
 - [x] stagedUploadsCreate to get a url to upload to
 - [x] upload via http post (but i have not tested yet.)
 - [x] FileCreate "create" a file- make it avaliavle in the files api
-- [ ] move the file after we're done with it
 - [x] store the id of the uploaded file to delete on the next upload
+- [x] clean up files
+- [x] upload a consistant filename to shopify
+
+## final mile
+
+question
+
+- how do we want to name the files?
+  - matrixify can have dynamic filenames with date/time
+- i think that we need to have a consistant name within the shopify cdn / so that we can find the file name when using the file filter
 
 ## node setup notes
 
