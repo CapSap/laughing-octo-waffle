@@ -19,13 +19,30 @@
 - [x] clean up files
 - [x] upload a consistant filename to shopify
 
-## final mile
+## final delivery
 
-question
+- how much do i need to think about security and hardening?
+- what platform should we deploy to?
+  easy answer is a digital ocean droplett.
+  why? learn more about DO and running a service
 
-- how do we want to name the files?
-  - matrixify can have dynamic filenames with date/time
-- i think that we need to have a consistant name within the shopify cdn / so that we can find the file name when using the file filter
+i think i could be handleing secrets better. use docker to handle the .env vars that the node app needs. also could have the pub key in the docker host
+
+and i need to get the networking working from matrixify to the ftp server
+
+- i could allow matrixify only and block everything else.
+- alex has been targeted with ..?
+- and i dont know how to protect against these.
+
+and should i restrict ports?
+
+and add fail2ban?
+
+plan from here
+
+- [x] verify that upload from matrixify works. (private key works, and target dir is / on the job)
+- [ ] use docker secret instead of .env
+- [ ] add fail2ban
 
 ## node setup notes
 
