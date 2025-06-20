@@ -47,8 +47,8 @@ RUN mkdir -p /var/log/proftpd && \
 EXPOSE 2222
 
 # Copy entrypoint script
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY entry.sh /entry.sh
+RUN chmod +x /entry.sh
 
 # Start using script instead of ProFTPD directly
-CMD ["/entrypoint.sh"]
+CMD ["/entry.sh"]

@@ -17,4 +17,4 @@ services:
 
 volumes:
   shared-data:
-  sftp-keys
+  sftp-keys:
