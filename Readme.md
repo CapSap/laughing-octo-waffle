@@ -41,8 +41,13 @@ and add fail2ban?
 plan from here
 
 - [x] verify that upload from matrixify works. (private key works, and target dir is / on the job)
-- [ ] use docker secret instead of .env
-- [ ] add fail2ban
+- [ ] deploy!
+
+things that i wont do just yet
+
+- [ ] use docker secret instead of .env (i think this is safe enough)
+- [ ] add fail2ban (lets see if there is a need)
+- [ ] whitelist ip address (this can be done in digital ocean)
 
 ## node setup notes
 
