@@ -41,7 +41,7 @@ log_info "Configuring UFW firewall..."
 sudo apt install -y ufw # Ensure ufw is installed
 
 sudo ufw allow OpenSSH         # Keep SSH access
-sudo ufw allow 2222/tcp          # For proFTP 
+sudo ufw allow 2222/tcp          # For SFTP via proFTP 
 
 log_info "Enabling UFW firewall. Confirm with 'y' if prompted."
 sudo ufw enable || log_error "Failed to enable UFW."
@@ -53,7 +53,7 @@ mkdir -p "$PROJECT_DIR"
 # No need for chown if the commands are run as root; root will own directories it creates.
 
 log_info final manual step: run the below command to manually copy the prod .env file for the app
-log_info "scp -i ~/.ssh/id_do_droplet_1 ./production.env root@$DROPLET_HOST:/opt/sl-app/.env"
-log_info "ssh -i ~/.ssh/id_do_droplet_1 root@$DROPLET_HOST"chmod 600 /opt/sl-app/.env""
+log_info "scp -i ~/.ssh/id_do_droplet_1 ./upload-app/production.env root@$DROPLET_HOST:/opt/sl-app/.env"
+log_info "ssh -i ~/.ssh/id_do_droplet_1 root@$DROPLET_HOST chmod 600 /opt/sl-app/.env"
 
 log_info "Initial Droplet setup completed!"
