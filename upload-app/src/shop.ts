@@ -26,6 +26,19 @@ export async function initShopify() {
     return;
   }
 
+  console.log("Shopify API Env Vars (as seen by app):");
+  console.log("SHOPIFY_SHOP_DOMAIN:", process.env.SHOPIFY_SHOP_DOMAIN);
+  console.log("SERVER_HOST:", process.env.SERVER_HOST);
+  console.log(
+    "SHOPIFY_ADMIN_API_ACCESS_TOKEN (first 5 chars):",
+    process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN?.substring(0, 5) + "..."
+  );
+  console.log("SHOPIFY_API_KEY:", process.env.SHOPIFY_API_KEY);
+  console.log(
+    "SHOPIFY_API_SECRET_KEY (first 5 chars):",
+    process.env.SHOPIFY_API_SECRET_KEY?.substring(0, 5) + "..."
+  );
+
   const shopify = shopifyApi({
     apiKey: process.env.SHOPIFY_API_KEY,
     apiSecretKey: process.env.SHOPIFY_API_SECRET_KEY,
