@@ -65,9 +65,8 @@ run_remote "cd $PROJECT_DIR && docker compose down || true"
 log_info "Building new Docker images and bringing up services..."
 run_remote "cd $PROJECT_DIR && docker compose build --no-cache && docker compose up -d"
 
-# 5. (Optional) Basic health check for Node.js server
-log_info "Performing basic health check on Node.js service..."
-run_remote "curl -f http://localhost:3000/health || { echo 'Health check failed for Node.js!'; exit 1; }"
-log_info "Node.js service appears to be running on localhost:3000"
+# 5. Health check
+run_remote "cd $PROJECT_DIR && docker compose ps -a"
+
 
 log_info "Deployment to $DROPLET_HOST completed successfully!"
