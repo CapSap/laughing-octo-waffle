@@ -6,6 +6,7 @@ services:
       - "2222:22" # External port 2222 maps to container's internal port 22
     volumes:
       - shared-data:/home/sftpuser/uploads
+      - sftp-keys:/etc/proftp/keys
   node-app:
     build: ./upload-app
     container_name: node-uploader
@@ -16,3 +17,4 @@ services:
 
 volumes:
   shared-data:
+  sftp-keys:

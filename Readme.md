@@ -19,13 +19,45 @@
 - [x] clean up files
 - [x] upload a consistant filename to shopify
 
-## final mile
+## final delivery project notes
 
-question
+- how much do i need to think about security and hardening?
+- what platform should we deploy to?
+  easy answer is a digital ocean droplett.
+  why? learn more about DO and running a service
 
-- how do we want to name the files?
-  - matrixify can have dynamic filenames with date/time
-- i think that we need to have a consistant name within the shopify cdn / so that we can find the file name when using the file filter
+i think i could be handleing secrets better. use docker to handle the .env vars that the node app needs. also could have the pub key in the docker host
+
+and i need to get the networking working from matrixify to the ftp server
+
+- i could allow matrixify only and block everything else.
+- alex has been targeted with ..?
+- and i dont know how to protect against these.
+
+and should i restrict ports?
+
+and add fail2ban?
+
+plan from here
+
+- [x] verify that upload from matrixify works. (private key works, and target dir is / on the job)
+- [ ] deploy!
+
+things that i wont do just yet
+
+- [ ] use docker secret instead of .env (i think this is safe enough)
+- [ ] add fail2ban (lets see if there is a need)
+- [ ] whitelist ip address (this can be done in digital ocean)
+
+# How to deploy
+
+1. Copy over the droplet setup script into the host with scp
+   `scp -i <path to key> <local file> <user@address>:~`
+2. ssh into host and Run it
+   `ssh -i <path to key> <user@address>`
+3. copy over the local production.env as .env into host project dir (follow commands from output)
+   `scp -i <path to key> <./upload-app/.env> <user@address:/opt/sl-app/.env>`
+4. Run the deploy.sh script
 
 ## node setup notes
 

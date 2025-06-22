@@ -16,12 +16,6 @@ RUN useradd -m -d /home/sftpuser -s /bin/false sftpuser && \
     chown sftpuser:sftpuser /home/sftpuser/uploads && \
     chmod 755 /home/sftpuser/uploads
 
-# Generate server host key (simplified to just RSA for now)
-RUN mkdir -p /etc/proftpd/keys && \
-    ssh-keygen -t rsa -b 2048 -f /etc/proftpd/keys/sftp_rsa_host_key -N "" && \
-    chown -R proftpd:proftpd /etc/proftpd/keys && \
-    chmod 600 /etc/proftpd/keys/*
-
 # Setup client authentication directory
 RUN mkdir -p /etc/proftpd/authorized_keys && \
     chown proftpd:proftpd /etc/proftpd/authorized_keys
@@ -52,5 +46,9 @@ RUN mkdir -p /var/log/proftpd && \
 # Expose SFTP port (changed to 2222 to match config)
 EXPOSE 2222
 
-# Start ProFTPD in foreground
-CMD ["/usr/sbin/proftpd", "--nodaemon", "--config", "/etc/proftpd/proftpd.conf"]
+# Copy entrypoint script
+COPY entry.sh /entry.sh
+RUN chmod +x /entry.sh
+
+# Start using script instead of ProFTPD directly
+CMD ["/entry.sh"]
