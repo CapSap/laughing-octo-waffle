@@ -52,10 +52,4 @@ log_info "Creating application project directory: $PROJECT_DIR"
 mkdir -p "$PROJECT_DIR"
 # No need for chown if the commands are run as root; root will own directories it creates.
 
-# 5. Reminder for .env file creation
-log_info "IMPORTANT: Create your production .env file manually inside $PROJECT_DIR"
-log_info "Example: nano $PROJECT_DIR/.env"
-log_info "Set secure permissions: chmod 600 $PROJECT_DIR/.env"
-log_info "Remember: This .env file must NOT be in your Git repository."
-
 log_info "Initial Droplet setup completed!"
