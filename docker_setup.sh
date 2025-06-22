@@ -31,7 +31,7 @@ echo \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 sudo apt-get update
 
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 log_info "Verifying Docker installation..."
 sudo docker run hello-world || log_error "Docker 'hello-world' test failed. Check Docker installation."
@@ -41,11 +41,7 @@ log_info "Configuring UFW firewall..."
 sudo apt install -y ufw # Ensure ufw is installed
 
 sudo ufw allow OpenSSH         # Keep SSH access
-sudo ufw allow http            # For your Node.js web server (port 80)
-sudo ufw allow https           # For your Node.js web server (port 443, if using HTTPS later)
-sudo ufw allow 21/tcp          # For FTP control
-sudo ufw allow 20/tcp          # For FTP data (active mode)
-sudo ufw allow 21100:21110/tcp # For FTP passive mode (ADJUST THIS TO YOUR PROFTPD CONFIG)
+sudo ufw allow 2222/tcp          # For proFTP 
 
 log_info "Enabling UFW firewall. Confirm with 'y' if prompted."
 sudo ufw enable || log_error "Failed to enable UFW."
