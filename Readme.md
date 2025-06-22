@@ -71,3 +71,10 @@ build: ./sftp
 container_name: sftp-server
 ports: - "22:22" - "21000-21010:21000-21010"
 volumes: - shared-data:/home/sftpuser/uploads
+
+# notes for deploy progress
+
+- having some trouble on server running the node
+- confirmed the problem: all 5 keys are missing. env issue.
+
+how to get docker to inject the .env into the node app?
