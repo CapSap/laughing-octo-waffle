@@ -19,7 +19,7 @@
 - [x] clean up files
 - [x] upload a consistant filename to shopify
 
-## final delivery
+## final delivery project notes
 
 - how much do i need to think about security and hardening?
 - what platform should we deploy to?
@@ -48,6 +48,16 @@ things that i wont do just yet
 - [ ] use docker secret instead of .env (i think this is safe enough)
 - [ ] add fail2ban (lets see if there is a need)
 - [ ] whitelist ip address (this can be done in digital ocean)
+
+# How to deploy
+
+1. Copy over the droplet setup script into the host (ensure that there is a production.env in the same dir) with scp
+   `scp -i <path to key> <local file> <user@address>`
+2. ssh into host and Run it
+   `ssh -i <path to key> <user@address>`
+3. copy over the production.env file to the host (follow commands from output)
+   `scp -i <path to key> <local file> <user@address:/opt/sl-app/>`
+4. Run the deploy.sh script
 
 ## node setup notes
 
