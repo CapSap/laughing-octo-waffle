@@ -1,28 +1,13 @@
 #!/bin/bash
 
 # --- Load Environment Variables from local .env file ---
-# IMPORTANT: Ensure 'local_deploy.env' is NOT committed to Git if it contains secrets!
-# For production secrets (e.g., DB passwords), they should live ONLY on the Droplet's .env file.
-if [ -f "local_deploy.env" ]; then
-    log_info "Loading configuration from local_deploy.env..."
-    source "local_deploy.env"
+if [ -f "deploy.env" ]; then
+    log_info "Loading configuration from deploy.env..."
+    source "deploy.env"
 else
-    log_error "local_deploy.env not found! Please create it with your deployment variables."
+    log_error "deploy.env not found! Please create it with your deployment variables."
     exit 1
 fi
-
-# --- Configuration Variables (These will be overwritten by local_deploy.env if present) ---
-# If local_deploy.env is not used, or for default values, you can keep these.
-# They are now fallback/default values if not defined in the sourced .env file.
-# Example: DROPLET_HOST="${DROPLET_HOST:-default_droplet_ip}"
-# For simplicity, remove them if you strictly use local_deploy.env for all vars.
-# I'll keep them commented for clarity that they'd be redundant if local_deploy.env is complete.
-# DROPLET_HOST="your_droplet_ip_or_hostname"
-# SSH_KEY_PATH="~/.ssh/id_do_droplet_1"
-# SSH_USER="root"
-# PROJECT_DIR="/opt/your_project_name"
-# GIT_REPO_URL="https://github.com/your_username/your_repo.git"
-# GIT_BRANCH="main"
 
 # --- Error Handling ---
 set -e # Exit immediately if a command exits with a non-zero status.
