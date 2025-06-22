@@ -47,8 +47,10 @@ run_remote "cd $PROJECT_DIR && \
         echo 'Git repo exists, pulling...'; \
         git pull origin $GIT_BRANCH; \
     else \
-        echo 'Git repo not found, cloning...'; \
-        git clone $GIT_REPO_URL .; \
+        echo 'Git repo not found, init and cloning...'; \
+        git init && \
+        git remote add origin $GIT_REPO_URL && \
+        git pull origin $GIT_BRANCH; \
     fi"
 
 # 2. Handle .env file (Reminder for secure practice)

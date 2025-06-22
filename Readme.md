@@ -53,8 +53,9 @@ things that i wont do just yet
 
 1. Copy over the droplet setup script into the host with scp
    `scp -i <path to key> <local file> <user@address>:~`
-2. ssh into host and Run it
+2. ssh into host, chmod script and Run it
    `ssh -i <path to key> <user@address>`
+   `chomd +x ./script.sh`
 3. copy over the local production.env as .env into host project dir (follow commands from output)
    `scp -i <path to key> <./upload-app/.env> <user@address:/opt/sl-app/.env>`
 4. Run the deploy.sh script
