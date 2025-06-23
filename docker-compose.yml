@@ -2,7 +2,7 @@ version: "3.8" # Important: Specify a Swarm-compatible version (3.x)
 
 services:
   pro-ftpd:
-    build: ./pro
+    image: pro-ftpd:latest
     ports:
       - "2222:22" # External port 2222 maps to container's internal port 22
     volumes:
@@ -15,7 +15,7 @@ services:
       restart_policy:
         condition: on-failure # Restart if container fails
   node-app:
-    build: ./upload-app
+    image: node-app:latest
     volumes:
       - shared-data:/uploads
     networks:
@@ -45,3 +45,15 @@ networks:
     driver: overlay
     # or other services to this network later (not strictly needed for your current setup).
     # You could also specify `encrypted: true` here if you wanted encrypted overlay networks.
+
+secrets:
+  shopify_shop_domain:
+    external: true
+  server_host:
+    external: true
+  shopify_admin_api_access_token:
+    external: true
+  shopify_api_key:
+    external: true
+  shopify_api_secret_key:
+    external: true
