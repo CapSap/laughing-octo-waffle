@@ -106,6 +106,10 @@ run_remote "cd $PROJECT_DIR && docker compose down || true"
 log_info "Stopping existing Docker Swarm stack '$STACK_NAME' if it exists..."
 run_remote "docker stack rm $STACK_NAME || true" # Use '|| true' to prevent script exit if stack doesn't exist
 
+# build
+run_remote docker build -t pro-ftpd:latest ./pro
+run_remote docker build -t node-app:latest ./upload-app
+
 # 4. Deploy the Docker Swarm stack
 log_info "Deploying Docker Swarm stack '$STACK_NAME'..."
 # `docker stack deploy` will automatically build images if 'build' context is defined in docker-compose.yml
