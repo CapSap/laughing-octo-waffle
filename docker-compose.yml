@@ -1,5 +1,3 @@
-version: "3.8" # Important: Specify a Swarm-compatible version (3.x)
-
 services:
   pro-ftpd:
     image: pro-ftpd:latest
