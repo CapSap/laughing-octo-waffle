@@ -18,7 +18,8 @@ log_error() { echo -e "\n\033[1;31m!!! ERROR: $1 !!!\033[0m"; }
 run_remote() {
     local command="$@"
     log_info "Executing remotely on $DROPLET_HOST: '$command'"
-    ssh -i "$SSH_KEY_PATH" "$SSH_USER@$DROPLET_HOST" "$command"
+    # ssh -i "$SSH_KEY_PATH" "$SSH_USER@$DROPLET_HOST" "$command"
+    ssh "$SSH_USER@$DROPLET_HOST" "$command"
 }
 
 # --- Pre-Checks ---
