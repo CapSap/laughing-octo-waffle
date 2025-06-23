@@ -80,19 +80,19 @@ for SECRET_PAIR in "${SECRETS_TO_CREATE[@]}"; do
     SECRET_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f2)
 
     # Read the value from the local .env file
-    SECRET_VALUE=$(grep "^${ENV_VAR_NAME}=" .env | cut -d'=' -f2-)
+    SECRET_VALUE=$(grep "^${ENV_VAR_NAME}=" ./upload-app/.env | cut -d'=' -f2-)
 
     if [ -z "$SECRET_VALUE" ]; then
         log_error "Local .env variable '$ENV_VAR_NAME' is empty or not found. Cannot create secret '$SECRET_NAME'."
         exit 1
     fi
 
-    # Remove existing secret first to handle updates and re-runs (idempotency)
-    # The '|| true' prevents the script from exiting if the secret doesn't exist yet
-    ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_PATH" "$SSH_USER@$SSH_HOST" "docker secret rm $SECRET_NAME || true"
+    # UPDATED: Using run_remote for secret removal
+    run_remote "docker secret rm $SECRET_NAME || true"
 
-    # Create the new secret, piping the value securely
-    ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_PATH" "$SSH_USER@$SSH_HOST" "echo \"$SECRET_VALUE\" | docker secret create $SECRET_NAME -" \
+    # UPDATED: Using run_remote for secret creation
+    # The 'echo' needs to happen on the local machine and then piped via ssh opened by run_remote.
+    echo "$SECRET_VALUE" | run_remote "docker secret create $SECRET_NAME -" \
     || log_error "Failed to create Docker secret '$SECRET_NAME'."
     echo "  - Secret '$SECRET_NAME' created/updated."
 done
