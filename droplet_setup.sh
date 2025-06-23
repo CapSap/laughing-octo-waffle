@@ -90,8 +90,11 @@ log_info "Creating application project directory: $PROJECT_DIR"
 mkdir -p "$PROJECT_DIR"
 # No need for chown if the commands are run as root; root will own directories it creates.
 
-log_info final manual step: run the below command to manually copy the prod .env file for the app
-log_info "scp -i ~/.ssh/id_do_droplet_1 ./upload-app/production.env root@$DROPLET_HOST:/opt/sl-app/.env"
-log_info "ssh -i ~/.ssh/id_do_droplet_1 root@$DROPLET_HOST chmod 600 /opt/sl-app/.env"
+log_info final manual step: create docker secrets
+log_info 'use ssh-agent for only 1 x prompt "eval "$(ssh-agent -s)"'
+log_info "ssh-add ~/.ssh/droplet"
+log_info "ssh -i ~/.ssh/id_do_droplet_1 root@$DROPLET_HOST "
+log_info "./deploy.sh"
+
 
 log_info "Initial Droplet setup completed!"
