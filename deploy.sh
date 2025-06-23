@@ -92,12 +92,18 @@ done
 log_info "Stopping existing containers..."
 run_remote "cd $PROJECT_DIR && docker compose down || true"
 
-# 4. Build/Pull Docker images and bring up services
-log_info "Building new Docker images and bringing up services..."
-run_remote "cd $PROJECT_DIR && docker compose build --no-cache && docker compose up -d"
+# 3. Stop existing Docker Swarm stack gracefully (optional, but good for clean redeploy)
+log_info "Stopping existing Docker Swarm stack '$STACK_NAME' if it exists..."
+run_remote "docker stack rm $STACK_NAME || true" # Use '|| true' to prevent script exit if stack doesn't exist
 
-# 5. Health check
-run_remote "cd $PROJECT_DIR && docker compose ps -a"
+# 4. Deploy the Docker Swarm stack
+log_info "Deploying Docker Swarm stack '$STACK_NAME'..."
+# `docker stack deploy` will automatically build images if 'build' context is defined in docker-compose.yml
+run_remote "cd $PROJECT_DIR && docker stack deploy -c docker-compose.yml $STACK_NAME" \
+|| log_error "Failed to deploy Docker stack '$STACK_NAME'."
 
+# 5. Health check for Swarm services
+log_info "Checking Docker Swarm services for stack '$STACK_NAME'..."
+run_remote "docker stack ps $STACK_NAME"
 
 log_info "Deployment to $DROPLET_HOST completed successfully!"
