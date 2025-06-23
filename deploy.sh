@@ -18,7 +18,9 @@ log_error() { echo -e "\n\033[1;31m!!! ERROR: $1 !!!\033[0m"; }
 run_remote() {
     local command="$@"
     log_info "Executing remotely on $DROPLET_HOST: '$command'"
-    ssh -i "$SSH_KEY_PATH" "$SSH_USER@$DROPLET_HOST" "$command"
+    # using ssh-agent now so don't need to specific the key path
+    # ssh -i "$SSH_KEY_PATH" "$SSH_USER@$DROPLET_HOST" "$command"
+    ssh "$SSH_USER@$DROPLET_HOST" "$command"
 }
 
 # --- Pre-Checks ---
@@ -35,6 +37,15 @@ if [ -z "$SSH_USER" ]; then
     log_error "SSH_USER is not set. Please define it in local_deploy.env."
     exit 1
 fi
+if [ -z "$PROJECT_DIR" ]; then
+    log_error "PROJECT_DIR is not set. Please define it in deploy.env."
+    exit 1
+fi
+if [ -z "$STACK_NAME" ]; then
+    log_error "STACK_NAME is not set. Please define it in deploy.env (e.g., STACK_NAME=\"sl-app-stack\")."
+    exit 1
+fi
+log_info "Configuration looks good. Starting deployment..."
 # Add similar checks for other critical variables
 log_info "Configuration looks good. Starting deployment..."
 
@@ -53,20 +64,61 @@ run_remote "cd $PROJECT_DIR && \
         git pull origin $GIT_BRANCH; \
     fi"
 
-# 2. Handle .env file (Reminder for secure practice)
-log_info "REMINDER: Production .env file must exist in $PROJECT_DIR on the Droplet (not in Git)."
-log_info "It was set up by droplet_setup.sh or manually. Ensure it's current if secrets changed."
+# 2. Create Docker Secrets on the remote Droplet
+log_info "Creating/Updating Docker Secrets on the Droplet..."
+
+# Define your secrets here, reading from your local .env file
+# Ensure these names match what you'll use in docker-compose.yml
+SECRETS_TO_CREATE=(
+    "SHOPIFY_SHOP_DOMAIN=shopify_shop_domain"
+    "SERVER_HOST=server_host"
+    "SHOPIFY_ADMIN_API_ACCESS_TOKEN=shopify_admin_api_access_token"
+    "SHOPIFY_API_KEY=shopify_api_key"
+    "SHOPIFY_API_SECRET_KEY=shopify_api_secret_key"
+)
+
+for SECRET_PAIR in "${SECRETS_TO_CREATE[@]}"; do
+    ENV_VAR_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f1)
+    SECRET_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f2)
+
+    # Read the value from the local .env file
+    SECRET_VALUE=$(grep "^${ENV_VAR_NAME}=" ./upload-app/.env | cut -d'=' -f2-)
+
+    if [ -z "$SECRET_VALUE" ]; then
+        log_error "Local .env variable '$ENV_VAR_NAME' is empty or not found. Cannot create secret '$SECRET_NAME'."
+        exit 1
+    fi
+
+    # UPDATED: Using run_remote for secret removal
+    run_remote "docker secret rm $SECRET_NAME || true"
+
+    # UPDATED: Using run_remote for secret creation
+    # The 'echo' needs to happen on the local machine and then piped via ssh opened by run_remote.
+    echo "$SECRET_VALUE" | run_remote "docker secret create $SECRET_NAME -" \
+    || log_error "Failed to create Docker secret '$SECRET_NAME'."
+    echo "  - Secret '$SECRET_NAME' created/updated."
+done
 
 # 3. Stop existing containers gracefully
 log_info "Stopping existing containers..."
 run_remote "cd $PROJECT_DIR && docker compose down || true"
 
-# 4. Build/Pull Docker images and bring up services
-log_info "Building new Docker images and bringing up services..."
-run_remote "cd $PROJECT_DIR && docker compose build --no-cache && docker compose up -d"
+# 3. Stop existing Docker Swarm stack gracefully (optional, but good for clean redeploy)
+log_info "Stopping existing Docker Swarm stack '$STACK_NAME' if it exists..."
+run_remote "docker stack rm $STACK_NAME || true" # Use '|| true' to prevent script exit if stack doesn't exist
 
-# 5. Health check
-run_remote "cd $PROJECT_DIR && docker compose ps -a"
+# build
+run_remote docker build -t pro-ftpd:latest ./pro
+run_remote docker build -t node-app:latest ./upload-app
 
+# 4. Deploy the Docker Swarm stack
+log_info "Deploying Docker Swarm stack '$STACK_NAME'..."
+# `docker stack deploy` will automatically build images if 'build' context is defined in docker-compose.yml
+run_remote "cd $PROJECT_DIR && docker stack deploy -c docker-compose.yml $STACK_NAME" \
+|| log_error "Failed to deploy Docker stack '$STACK_NAME'."
+
+# 5. Health check for Swarm services
+log_info "Checking Docker Swarm services for stack '$STACK_NAME'..."
+run_remote "docker stack ps $STACK_NAME"
 
 log_info "Deployment to $DROPLET_HOST completed successfully!"

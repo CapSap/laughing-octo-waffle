@@ -36,12 +36,50 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plug
 log_info "Verifying Docker installation..."
 sudo docker run hello-world || log_error "Docker 'hello-world' test failed. Check Docker installation."
 
+# 3. Docker Swarm Initialization 
+log_info "Checking Docker Swarm status and initializing if necessary..."
+if [ "$(docker info --format '{{.Swarm.ControlAvailable}}')" = "true" ]; then
+    echo "This node is already a Docker Swarm manager. Skipping swarm initialization."
+else
+    # Retrieve the private IP for --advertise-addr
+    # This command uses the DigitalOcean metadata service, which is reliable.
+    PRIVATE_IP=$(curl -s http://169.254.169.254/metadata/v1/interfaces/private/0/ipv4/address)
+
+    if [ -z "$PRIVATE_IP" ]; then
+        echo "Warning: Could not retrieve private IP from DigitalOcean metadata. Attempting to use a common alternative for --advertise-addr."
+        # Fallback to general private IP detection or prompt if necessary
+        # This might pick up 127.0.0.1 or public IP if no private network is configured.
+        PRIVATE_IP=$(hostname -I | awk '{print $1}') # Tries to get any IP, often the primary one
+        if [ -z "$PRIVATE_IP" ]; then
+            echo "Error: Could not determine an IP for --advertise-addr. Please specify it manually or ensure private networking is configured."
+            exit 1
+        fi
+    fi
+
+    echo "Initializing Docker Swarm with --advertise-addr $PRIVATE_IP..."
+    docker swarm init --advertise-addr "$PRIVATE_IP"
+
+    if [ $? -eq 0 ]; then
+        echo "Docker Swarm initialized successfully."
+    else
+        echo "Error: Docker Swarm initialization failed."
+        exit 1
+    fi
+fi
+
+echo "Docker setup complete."
+
 # 3. Configure Firewall (UFW)
 log_info "Configuring UFW firewall..."
 sudo apt install -y ufw # Ensure ufw is installed
 
 sudo ufw allow OpenSSH         # Keep SSH access
-sudo ufw allow 2222/tcp          # For SFTP via proFTP 
+sudo ufw allow 2222/tcp        # For SFTP via proFTP 
+
+sudo ufw allow 2377/tcp        # Docker Swarm management port (for other managers)
+sudo ufw allow 7946/tcp        # for overlay network node discovery
+sudo ufw allow 7946/udp        # for overlay network node discovery
+sudo ufw allow 4789/udp        # (configurable) for overlay network traffic  (VXLAN)
 
 log_info "Enabling UFW firewall. Confirm with 'y' if prompted."
 sudo ufw enable || log_error "Failed to enable UFW."
@@ -52,8 +90,11 @@ log_info "Creating application project directory: $PROJECT_DIR"
 mkdir -p "$PROJECT_DIR"
 # No need for chown if the commands are run as root; root will own directories it creates.
 
-log_info final manual step: run the below command to manually copy the prod .env file for the app
-log_info "scp -i ~/.ssh/id_do_droplet_1 ./upload-app/production.env root@$DROPLET_HOST:/opt/sl-app/.env"
-log_info "ssh -i ~/.ssh/id_do_droplet_1 root@$DROPLET_HOST chmod 600 /opt/sl-app/.env"
+log_info final manual step: create docker secrets
+log_info 'use ssh-agent for only 1 x prompt "eval "$(ssh-agent -s)"'
+log_info "ssh-add ~/.ssh/droplet"
+log_info "ssh -i ~/.ssh/id_do_droplet_1 root@$DROPLET_HOST "
+log_info "./deploy.sh"
+
 
 log_info "Initial Droplet setup completed!"

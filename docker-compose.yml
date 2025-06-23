@@ -1,20 +1,59 @@
+version: "3.8" # Important: Specify a Swarm-compatible version (3.x)
+
 services:
   pro-ftpd:
-    build: ./pro
-    container_name: proftpd-sftp-server
+    image: pro-ftpd:latest
     ports:
       - "2222:22" # External port 2222 maps to container's internal port 22
     volumes:
       - shared-data:/home/sftpuser/uploads
       - sftp-keys:/etc/proftp/keys
+    networks:
+      - app_network # Connect to our custom overlay network
+    deploy: # Define deployment preferences for Swarm
+      replicas: 1 # Number of instances to run (1 for single node)
+      restart_policy:
+        condition: on-failure # Restart if container fails
   node-app:
-    build: ./upload-app
-    container_name: node-uploader
+    image: node-app:latest
     volumes:
       - shared-data:/uploads
-    depends_on:
-      - pro-ftpd
+    networks:
+      - app_network # Connect to our custom overlay network
+    deploy: # Define deployment preferences for Swarm
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    secrets: # Link Docker Secrets to this service
+      - source: shopify_shop_domain
+        target: shopify_shop_domain # File path inside container: /run/secrets/shopify_shop_domain
+      - source: server_host
+        target: server_host # File path inside container: /run/secrets/server_host
+      - source: shopify_admin_api_access_token
+        target: shopify_admin_api_access_token
+      - source: shopify_api_key
+        target: shopify_api_key
+      - source: shopify_api_secret_key
+        target: shopify_api_secret_key
 
 volumes:
   shared-data:
   sftp-keys:
+
+networks:
+  app_network: # Define a custom overlay network for your services
+    driver: overlay
+    # or other services to this network later (not strictly needed for your current setup).
+    # You could also specify `encrypted: true` here if you wanted encrypted overlay networks.
+
+secrets:
+  shopify_shop_domain:
+    external: true
+  server_host:
+    external: true
+  shopify_admin_api_access_token:
+    external: true
+  shopify_api_key:
+    external: true
+  shopify_api_secret_key:
+    external: true

@@ -1,5 +1,6 @@
 import "@shopify/shopify-api/adapters/node";
 import { shopifyApi, ApiVersion, Session } from "@shopify/shopify-api";
+import { readDockerSecret } from "./utils/readDockerSecret.js";
 
 type ShopifyApiReturnType = ReturnType<typeof shopifyApi>;
 type GraphqlClientConstructor = ShopifyApiReturnType["clients"]["Graphql"];
@@ -8,44 +9,52 @@ type GraphqlClientConstructor = ShopifyApiReturnType["clients"]["Graphql"];
 let client: InstanceType<GraphqlClientConstructor> | null = null; // Use InstanceType here, and allow it to be null initially
 
 export async function initShopify() {
-  if (
-    !process.env.SHOPIFY_SHOP_DOMAIN ||
-    !process.env.SERVER_HOST ||
-    !process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN ||
-    !process.env.SHOPIFY_API_KEY ||
-    !process.env.SHOPIFY_API_SECRET_KEY
-  ) {
-    const missingVars = [
-      "SHOPIFY_SHOP_DOMAIN",
-      "SERVER_HOST",
-      "SHOPIFY_ADMIN_API_ACCESS_TOKEN",
-      "SHOPIFY_API_KEY",
-      "SHOPIFY_API_SECRET_KEY",
-    ].filter((envVar) => !process.env[envVar]);
-    console.log("missing key", missingVars);
+  let shopifyShopDomain: string;
+  let serverHost: string;
+  let shopifyAdminApiAccessToken: string;
+  let shopifyApiKey: string;
+  let shopifyApiSecretKey: string;
+
+  try {
+    // Read secrets using the readDockerSecret function
+    shopifyShopDomain = readDockerSecret("shopify_shop_domain");
+    serverHost = readDockerSecret("server_host");
+    shopifyAdminApiAccessToken = readDockerSecret(
+      "shopify_admin_api_access_token"
+    );
+    shopifyApiKey = readDockerSecret("shopify_api_key");
+    shopifyApiSecretKey = readDockerSecret("shopify_api_secret_key");
+  } catch (e) {
+    console.error("Failed to load one or more Shopify secrets:");
+    if (e instanceof Error) {
+      console.error(`Error: ${e.message}`);
+    } else {
+      console.error(`An unknown error occurred: ${String(e)}`);
+    }
     return;
   }
 
-  console.log("Shopify API Env Vars (as seen by app):");
-  console.log("SHOPIFY_SHOP_DOMAIN:", process.env.SHOPIFY_SHOP_DOMAIN);
-  console.log("SERVER_HOST:", process.env.SERVER_HOST);
+  console.log("Shopify API Secrets (as seen by app):");
+  console.log("SHOPIFY_SHOP_DOMAIN:", shopifyShopDomain);
+  console.log("SERVER_HOST:", serverHost);
+  // Be careful not to log full secret values, especially for tokens/keys
   console.log(
     "SHOPIFY_ADMIN_API_ACCESS_TOKEN (first 5 chars):",
-    process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN?.substring(0, 5) + "..."
+    shopifyAdminApiAccessToken.substring(0, 5) + "..."
   );
-  console.log("SHOPIFY_API_KEY:", process.env.SHOPIFY_API_KEY);
+  console.log("SHOPIFY_API_KEY:", shopifyApiKey);
   console.log(
     "SHOPIFY_API_SECRET_KEY (first 5 chars):",
-    process.env.SHOPIFY_API_SECRET_KEY?.substring(0, 5) + "..."
+    shopifyApiSecretKey.substring(0, 5) + "..."
   );
 
   const shopify = shopifyApi({
-    apiKey: process.env.SHOPIFY_API_KEY,
-    apiSecretKey: process.env.SHOPIFY_API_SECRET_KEY,
+    apiKey: shopifyApiKey,
+    apiSecretKey: shopifyApiSecretKey,
     scopes: ["write_files"],
-    apiVersion: ApiVersion.July25,
-    hostName: process.env.SERVER_HOST,
-    hostScheme: "http",
+    apiVersion: ApiVersion.July25, // Or your specific API version
+    hostName: serverHost,
+    hostScheme: "http", // Or 'https' if your SERVER_HOST is HTTPS enabled
     isEmbeddedApp: false,
     logger: {
       log: (severity, message) => {
@@ -56,11 +65,11 @@ export async function initShopify() {
 
   const session = new Session({
     id: "custom_app_session_id", // Can be a static ID for your private app
-    shop: process.env.SHOPIFY_SHOP_DOMAIN,
+    shop: shopifyShopDomain,
     state: "STATE_NOT_REQUIRED_FOR_PRIVATE_APP", // OAuth state, not needed for private app
-    isOnline: false, // Private app tokens are generally considered "offline" as they don't expire based on user presence
+    isOnline: false, // Private app tokens are generally considered "offline"
     scopes: ["write_files"],
-    accessToken: process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN,
+    accessToken: shopifyAdminApiAccessToken,
   });
 
   // 3. You can now use this session to create a GraphQL client:
