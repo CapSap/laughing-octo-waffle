@@ -53,9 +53,40 @@ run_remote "cd $PROJECT_DIR && \
         git pull origin $GIT_BRANCH; \
     fi"
 
-# 2. Handle .env file (Reminder for secure practice)
-log_info "REMINDER: Production .env file must exist in $PROJECT_DIR on the Droplet (not in Git)."
-log_info "It was set up by droplet_setup.sh or manually. Ensure it's current if secrets changed."
+# 2. Create Docker Secrets on the remote Droplet
+log_info "Creating/Updating Docker Secrets on the Droplet..."
+
+# Define your secrets here, reading from your local .env file
+# Ensure these names match what you'll use in docker-compose.yml
+SECRETS_TO_CREATE=(
+    "SHOPIFY_SHOP_DOMAIN=shopify_shop_domain"
+    "SERVER_HOST=server_host"
+    "SHOPIFY_ADMIN_API_ACCESS_TOKEN=shopify_admin_api_access_token"
+    "SHOPIFY_API_KEY=shopify_api_key"
+    "SHOPIFY_API_SECRET_KEY=shopify_api_secret_key"
+)
+
+for SECRET_PAIR in "${SECRETS_TO_CREATE[@]}"; do
+    ENV_VAR_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f1)
+    SECRET_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f2)
+
+    # Read the value from the local .env file
+    SECRET_VALUE=$(grep "^${ENV_VAR_NAME}=" .env | cut -d'=' -f2-)
+
+    if [ -z "$SECRET_VALUE" ]; then
+        log_error "Local .env variable '$ENV_VAR_NAME' is empty or not found. Cannot create secret '$SECRET_NAME'."
+        exit 1
+    fi
+
+    # Remove existing secret first to handle updates and re-runs (idempotency)
+    # The '|| true' prevents the script from exiting if the secret doesn't exist yet
+    ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_PATH" "$SSH_USER@$SSH_HOST" "docker secret rm $SECRET_NAME || true"
+
+    # Create the new secret, piping the value securely
+    ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_PATH" "$SSH_USER@$SSH_HOST" "echo \"$SECRET_VALUE\" | docker secret create $SECRET_NAME -" \
+    || log_error "Failed to create Docker secret '$SECRET_NAME'."
+    echo "  - Secret '$SECRET_NAME' created/updated."
+done
 
 # 3. Stop existing containers gracefully
 log_info "Stopping existing containers..."
