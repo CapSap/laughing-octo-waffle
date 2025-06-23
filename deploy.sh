@@ -35,6 +35,15 @@ if [ -z "$SSH_USER" ]; then
     log_error "SSH_USER is not set. Please define it in local_deploy.env."
     exit 1
 fi
+if [ -z "$PROJECT_DIR" ]; then
+    log_error "PROJECT_DIR is not set. Please define it in deploy.env."
+    exit 1
+fi
+if [ -z "$STACK_NAME" ]; then
+    log_error "STACK_NAME is not set. Please define it in deploy.env (e.g., STACK_NAME=\"sl-app-stack\")."
+    exit 1
+fi
+log_info "Configuration looks good. Starting deployment..."
 # Add similar checks for other critical variables
 log_info "Configuration looks good. Starting deployment..."
 
