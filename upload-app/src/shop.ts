@@ -1,6 +1,6 @@
 import "@shopify/shopify-api/adapters/node";
 import { shopifyApi, ApiVersion, Session } from "@shopify/shopify-api";
-import { readDockerSecret } from "./utils/readDockerSecret";
+import { readDockerSecret } from "./utils/readDockerSecret.js";
 
 type ShopifyApiReturnType = ReturnType<typeof shopifyApi>;
 type GraphqlClientConstructor = ShopifyApiReturnType["clients"]["Graphql"];
