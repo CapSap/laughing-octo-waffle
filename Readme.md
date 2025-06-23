@@ -3,12 +3,12 @@
 - matrixify can upload to server so thats what we're doing. use sftp
 - key needs to be added to matrixify
 
-## step by each: what is the node app doing?
+## step by each: what are each ?
 
-1. waiting watching for changes in the /uploads dir (what exactly is it waiting for? a new file to arrive and finish uploading.)
-2. after file is uploaded, make a graphql query to upload the file
-3. mv the file from /uploads to a /archive dir
-4. and maybe once a week do a cleanup of all files in archive
+1. a file arrives to the ftp server (proftp names it .in. while its being transfered. node app is ignoring .in files)
+2. waiting watching for changes in the /uploads dir
+3. after file is uploaded, make a graphql query to upload the file (3 parts to this step)
+4. do a cleanup of all files in uploads older than 30 days
 
 # todos
 
@@ -19,7 +19,7 @@
 - [x] clean up files
 - [x] upload a consistant filename to shopify
 
-## final delivery project notes
+## final deployment project notes
 
 - how much do i need to think about security and hardening?
 - what platform should we deploy to?
@@ -78,3 +78,11 @@ volumes: - shared-data:/home/sftpuser/uploads
 - confirmed the problem: all 5 keys are missing. env issue.
 
 how to get docker to inject the .env into the node app?
+
+# swarm plan
+
+1. Prepare Droplet: Initialize Docker Swarm on your Droplet.
+2. Create Secrets: Using SSH on your Droplet, you'll create a Docker secret for each of your Shopify API keys and other sensitive variables.
+3. Update docker-compose.yml: Modify your docker-compose.yml file (on your local machine) to tell Docker Swarm about the secrets and how your node-app service will use them.
+4. Update Node.js Code: Adjust your shop.ts file to read these secrets from the special /run/secrets/ file paths instead of process.env.
+5. Deploy: Use the docker stack deploy command to deploy your entire application to the Swarm. Your deploy.sh script will be updated to handle this process.
