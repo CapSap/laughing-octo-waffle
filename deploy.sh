@@ -108,8 +108,8 @@ log_info "Stopping existing Docker Swarm stack '$STACK_NAME' if it exists..."
 run_remote "docker stack rm $STACK_NAME || true" # Use '|| true' to prevent script exit if stack doesn't exist
 
 # build
-run_remote docker build -t pro-ftpd:latest ./pro
-run_remote docker build -t node-app:latest ./upload-app
+run_remote docker build -t pro-ftpd:latest $PROJECT_DIR/pro
+run_remote docker build -t node-app:latest $PROJECT_DIR/upload-app
 
 # 4. Deploy the Docker Swarm stack
 log_info "Deploying Docker Swarm stack '$STACK_NAME'..."
