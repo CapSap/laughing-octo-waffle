@@ -74,14 +74,15 @@ async function main() {
         if (stats.isFile()) {
           console.log(`Detected new file: ${filename}`);
           /* 3 step process:
-          1. generate the upload url via stagedUploadsCreate
-          2. upload via http post
-          3. "register" the file on the Files API via fileCreate (and overwrite the existing file)
+          1. generate the upload url via stagedUploadsCreate. 
+          (we cant upload files directly because we're uploading to a shopify controlled cdn. Shopify wants to safely handle file uploads)
+          2. upload via http post on the returned url from above
+          3. "register" the file (make the file avaliable to our shopify store) on the Files API via fileCreate (and overwrite the existing file)
           */
           // shared variables across scoped try blocks
           let client;
           let uploadUrl;
-          let resourceUrl;
+          let shopifyResourceUrl;
           let params: { name: string; value: string }[];
 
           // init the client
@@ -166,7 +167,7 @@ async function main() {
             const stagedTargets =
               response.data.stagedUploadsCreate.stagedTargets[0];
             uploadUrl = stagedTargets.url;
-            resourceUrl = stagedTargets.resourceUrl;
+            shopifyResourceUrl = stagedTargets.resourceUrl;
             params = stagedTargets.parameters;
 
             console.log("Extensions:");
