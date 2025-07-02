@@ -240,7 +240,7 @@ async function main() {
             files: [
               {
                 originalSource: shopifyResourceUrl, // this is not the final file url for us.
-                alt: `Uploaded CSV file from node at ${new Date().toLocaleDateString(
+                alt: `Uploaded CSV file from node at ${new Date().toLocaleString(
                   "en-AU",
                   { timeZone: "Australia/Sydney" }
                 )}`, // timezone to auto adjust for daylight savings time
