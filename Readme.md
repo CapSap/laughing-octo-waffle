@@ -57,3 +57,4 @@ A challenge was handleing the env variables/secrets for the node app- to handle 
 - [x] add fail2ban (lets see if there is a need)
 - [x] whitelist ip address (this can be done in digital ocean)
 - [x] deploy!
+- [ ] use a more efficient docker image (we could build the node ts app in a builder image and then remove the build tools/src files and run it with a barebones docker node image)
