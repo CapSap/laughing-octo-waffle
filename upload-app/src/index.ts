@@ -238,8 +238,12 @@ async function main() {
           const fileCreateVariables = {
             files: [
               {
-                originalSource: resourceUrl, // Note: response.url here is likely NOT the final file URL
-                alt: `Uploaded CSV file from node at ${new Date().toUTCString()}`, // optional
+                originalSource: shopifyResourceUrl, // this is not the final file url for us.
+                alt: `Uploaded CSV file from node at ${new Date().toLocaleDateString(
+                  "en-AU",
+                  { timeZone: "Australia/Sydney" }
+                )}`, // timezone to auto adjust for daylight savings time
+
                 filename: "eb-soh.csv",
               },
             ],
