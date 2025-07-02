@@ -1,4 +1,19 @@
 #!/bin/bash
+if [[ "$1" == "--help" ]]; then
+    echo "Usage: ./deploy.sh [--local]"
+    echo "  --local   Run all commands locally (no SSH)"
+    exit 0
+fi
+
+# catch the --local flag
+IS_LOCAL=false
+if [ "$1" == "--local" ]; then
+  IS_LOCAL=true
+fi
+
+# --- Functions ---
+log_info() { echo -e "\n\033[1;34m=== $1 ===\033[0m"; }
+log_error() { echo -e "\n\033[1;31m!!! ERROR: $1 !!!\033[0m"; }
 
 # --- Load Environment Variables from local .env file ---
 if [ -f "deploy.env" ]; then
@@ -9,18 +24,41 @@ else
     exit 1
 fi
 
+if [ "$IS_LOCAL" = false ]; then
+    # Check if SSH agent is running
+    if [ -z "$SSH_AUTH_SOCK" ]; then
+        log_error "SSH agent is not running. Please start it with:"
+        echo ""
+        echo "  eval \$(ssh-agent -s)"
+        echo "  ssh-add ~/.ssh/<KEY NAME HERE>"
+        echo ""
+        exit 1
+    fi
+
+    # Optional: check if any keys are loaded
+    if ! ssh-add -l >/dev/null 2>&1; then
+        log_error "No SSH keys loaded in agent. Please run:"
+        echo ""
+        echo "  ssh-add ~/.ssh/<KEY NAME HERE>"
+        echo ""
+        exit 1
+    fi
+fi
+
 # --- Error Handling ---
 set -e # Exit immediately if a command exits with a non-zero status.
 
-# --- Functions ---
-log_info() { echo -e "\n\033[1;34m=== $1 ===\033[0m"; }
-log_error() { echo -e "\n\033[1;31m!!! ERROR: $1 !!!\033[0m"; }
+
 run_remote() {
     local command="$@"
-    log_info "Executing remotely on $DROPLET_HOST: '$command'"
-    # using ssh-agent now so don't need to specific the key path
-    # ssh -i "$SSH_KEY_PATH" "$SSH_USER@$DROPLET_HOST" "$command"
-    ssh "$SSH_USER@$DROPLET_HOST" "$command"
+    if [ "$IS_LOCAL" = true ]; then
+        eval "$command"
+    else 
+        log_info "Executing remotely on $DROPLET_HOST: '$command'"
+        # using ssh-agent now so don't need to specific the key path
+        # ssh -i "$SSH_KEY_PATH" "$SSH_USER@$DROPLET_HOST" "$command"
+        ssh "$SSH_USER@$DROPLET_HOST" "$command"
+    fi
 }
 
 # --- Pre-Checks ---
@@ -121,4 +159,8 @@ run_remote "cd $PROJECT_DIR && docker stack deploy -c docker-compose.yml $STACK_
 log_info "Checking Docker Swarm services for stack '$STACK_NAME'..."
 run_remote "docker stack ps $STACK_NAME"
 
-log_info "Deployment to $DROPLET_HOST completed successfully!"
+if [ "$IS_LOCAL" = true ]; then
+    log_info "Local deployment completed successfully!"
+else
+    log_info "Deployment to $DROPLET_HOST completed successfully!"
+fi
