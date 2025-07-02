@@ -2,13 +2,14 @@ import fs from "fs";
 import { readFile } from "fs/promises";
 import path from "path";
 import "dotenv/config";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
 
 import { uploadsDir } from "./utils/config.js";
-
 import { getShopifyGraphqlClient, initShopify } from "./shop.js";
 import { cleanupOldFiles } from "./utils/cleanup.js";
+import {
+  cleanupProcessedFile,
+  processCSVHeaders,
+} from "./utils/headerReplace.js";
 
 fs.mkdir(uploadsDir, { recursive: true }, (err) => {
   if (err) {
@@ -51,6 +52,11 @@ async function main() {
       );
       return;
     }
+    // Ignore processed files to avoid infinite loops
+    if (filename.includes("_processed.csv")) {
+      console.log(`Ignoring processed file: ${filename}`);
+      return;
+    }
 
     // Clear any existing timer for this file
     if (watchTimers[filename]) {
@@ -73,6 +79,15 @@ async function main() {
 
         if (stats.isFile()) {
           console.log(`Detected new file: ${filename}`);
+
+          // Process CSV headers before uploading
+          let processedFilePath: string;
+          try {
+            processedFilePath = await processCSVHeaders(fullPath);
+          } catch (error) {
+            console.error(`Failed to process headers for ${filename}:`, error);
+            return;
+          }
           /* 3 step process:
           1. generate the upload url via stagedUploadsCreate. 
           (we cant upload files directly because we're uploading to a shopify controlled cdn. Shopify wants to safely handle file uploads)
@@ -90,6 +105,7 @@ async function main() {
             client = getShopifyGraphqlClient();
           } catch (e) {
             console.error("not able to get a shopify graphql client", e);
+            await cleanupProcessedFile(processedFilePath);
             return;
           }
 
@@ -143,13 +159,16 @@ async function main() {
                 }
               }
             `;
+          // Get stats for the processed file
+          const processedStats = await fs.promises.stat(processedFilePath);
+
           const variables = {
             input: [
               {
                 resource: "FILE", // or "IMAGE" etc.
                 filename: "eb-soh.csv",
                 mimeType: "text/csv",
-                fileSize: stats.size.toString(), // size in bytes
+                fileSize: processedStats.size.toString(), // size in bytes
                 httpMethod: "POST",
               },
             ],
@@ -185,7 +204,7 @@ async function main() {
             formData.append(param.name, param.value);
           });
           // Read your file into a buffer
-          const fileBuffer = await readFile(fullPath);
+          const fileBuffer = await readFile(processedFilePath);
           const file = new File([fileBuffer], filename);
           const blob = new Blob([fileBuffer], { type: "text/csv" }); // optional mime type
           // formData.append("file", file, filename);
@@ -212,6 +231,7 @@ async function main() {
                 `Upload failed with status ${response.status}: ${response.statusText}`
               );
               console.error("Response body:", responseText);
+              await cleanupProcessedFile(processedFilePath);
               return;
             }
           } catch (e) {
@@ -219,6 +239,7 @@ async function main() {
               `Failed to upload file ${filename} via http fetch:`,
               e
             );
+            await cleanupProcessedFile(processedFilePath);
             return;
           }
           // final step: "register" the uploaded file with Shopify using fileCreate mutation
@@ -260,8 +281,11 @@ async function main() {
             console.log("File create response:");
             console.dir(fileCreateResponse, { depth: null, colors: true });
             lastUploadedFileId = fileCreateResponse.data.fileCreate.files[0].id;
+            // Clean up the processed file after successful upload
+            await cleanupProcessedFile(processedFilePath);
           } catch (e) {
             console.error("Failed to register file via fileCreate:", e);
+            await cleanupProcessedFile(processedFilePath);
           }
         }
       });
