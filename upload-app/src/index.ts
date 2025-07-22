@@ -206,10 +206,7 @@ async function main() {
           // Read your file into a buffer
           const fileBuffer = await readFile(processedFilePath);
           const file = new File([fileBuffer], filename);
-          const blob = new Blob([fileBuffer], { type: "text/csv" }); // optional mime type
-          // formData.append("file", file, filename);
-          // formData.append("file", fileBuffer);
-          formData.append("file", blob, "eb-soh.csv");
+          formData.append("file", file, "eb-soh-test2.csv");
 
           try {
             const response = await fetch(uploadUrl, {
