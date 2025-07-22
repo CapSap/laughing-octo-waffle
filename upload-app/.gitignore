@@ -3,3 +3,4 @@ dist/
 .env
 uploads/
 *.env
+a.csv
