@@ -9,12 +9,12 @@ docker swarm init 2>/dev/null || true
 
 echo "--- Building images locally ---"
 
-docker build --no-cache -t "pro-ftpd:latest" ./pro || {
+docker build -t "pro-ftpd:latest" ./pro || {
     echo "ERROR: Failed to build pro-ftpd image."
     exit 1
 }
 
-docker build --no-cache -t "node-app:latest" ./upload-app || {
+docker build -t "node-app:latest" ./upload-app || {
     echo "ERROR: Failed to build node-app image."
     exit 1
 }
