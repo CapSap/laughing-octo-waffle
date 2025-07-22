@@ -206,7 +206,7 @@ async function main() {
           // Read your file into a buffer
           const fileBuffer = await readFile(processedFilePath);
           const file = new File([fileBuffer], filename);
-          formData.append("file", file, "eb-soh-test2.csv");
+          formData.append("file", file, "eb-soh.csv");
 
           try {
             const response = await fetch(uploadUrl, {
