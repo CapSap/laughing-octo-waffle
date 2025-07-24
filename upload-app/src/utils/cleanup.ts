@@ -3,7 +3,8 @@ import path from "path";
 
 import { uploadsDir } from "./config.js";
 
-const ONE_MONTH_IN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days in ms
+// 15 days
+const FILE_AGE = 15 * 24 * 60 * 60 * 1000;
 
 export function cleanupOldFiles() {
   console.log("Starting periodic cleanup job...");
@@ -27,7 +28,7 @@ export function cleanupOldFiles() {
 
         const age = now - stats.mtimeMs; // file modification time
 
-        if (age > ONE_MONTH_IN_MS) {
+        if (age > FILE_AGE) {
           fs.unlink(filePath, (err) => {
             if (err) {
               console.error(`Error deleting old file ${file}:`, err);
