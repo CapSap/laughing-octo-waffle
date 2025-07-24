@@ -31,7 +31,7 @@ export async function processCSVHeaders(
     // Process the header row (first line)
     const originalHeaders = lines[0].split(",");
     const newHeaders = originalHeaders.map((header) => {
-      const trimmedHeader = header.trim();
+      const trimmedHeader = header.trim().replace(/^"|"$/g, "");
       return HEADER_MAPPING[trimmedHeader] || trimmedHeader; // Use mapping or keep original
     });
 
@@ -51,20 +51,5 @@ export async function processCSVHeaders(
   } catch (error) {
     console.error("Error processing CSV headers:", error);
     throw error;
-  }
-}
-
-/**
- * Cleans up temporary processed files
- * @param {string} processedFilePath - Path to the processed file to delete
- */
-export async function cleanupProcessedFile(
-  processedFilePath: string
-): Promise<void> {
-  try {
-    await fs.promises.unlink(processedFilePath);
-    console.log(`Cleaned up processed file: ${processedFilePath}`);
-  } catch (error) {
-    console.error("Error cleaning up processed file:", error);
   }
 }

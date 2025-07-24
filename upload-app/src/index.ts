@@ -6,10 +6,7 @@ import "dotenv/config";
 import { uploadsDir } from "./utils/config.js";
 import { getShopifyGraphqlClient, initShopify } from "./shop.js";
 import { cleanupOldFiles } from "./utils/cleanup.js";
-import {
-  cleanupProcessedFile,
-  processCSVHeaders,
-} from "./utils/headerReplace.js";
+import { processCSVHeaders } from "./utils/headerReplace.js";
 
 fs.mkdir(uploadsDir, { recursive: true }, (err) => {
   if (err) {
@@ -227,7 +224,6 @@ async function main() {
                 `Upload failed with status ${response.status}: ${response.statusText}`
               );
               console.error("Response body:", responseText);
-              // await cleanupProcessedFile(processedFilePath);
               return;
             }
           } catch (e) {
@@ -235,23 +231,22 @@ async function main() {
               `Failed to upload file ${filename} via http fetch:`,
               e
             );
-            // await cleanupProcessedFile(processedFilePath);
             return;
           }
           // final step: "register" the uploaded file with Shopify using fileCreate mutation
           const fileCreateMutation = `
-  mutation fileCreate($files: [FileCreateInput!]!) {
-    fileCreate(files: $files) {
-      files {
-        id
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
+            mutation fileCreate($files: [FileCreateInput!]!) {
+              fileCreate(files: $files) {
+                files {
+                  id
+                }
+                userErrors {
+                  field
+                  message
+                }
+              }
+            }
+          `;
 
           const fileCreateVariables = {
             files: [
@@ -277,11 +272,8 @@ async function main() {
             console.log("File create response:");
             console.dir(fileCreateResponse, { depth: null, colors: true });
             lastUploadedFileId = fileCreateResponse.data.fileCreate.files[0].id;
-            // Clean up the processed file after successful upload
-            // await cleanupProcessedFile(processedFilePath);
           } catch (e) {
             console.error("Failed to register file via fileCreate:", e);
-            // await cleanupProcessedFile(processedFilePath);
           }
         }
       });
