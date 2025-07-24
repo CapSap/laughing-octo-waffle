@@ -235,18 +235,18 @@ async function main() {
           }
           // final step: "register" the uploaded file with Shopify using fileCreate mutation
           const fileCreateMutation = `
-  mutation fileCreate($files: [FileCreateInput!]!) {
-    fileCreate(files: $files) {
-      files {
-        id
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
+            mutation fileCreate($files: [FileCreateInput!]!) {
+              fileCreate(files: $files) {
+                files {
+                  id
+                }
+                userErrors {
+                  field
+                  message
+                }
+              }
+            }
+          `;
 
           const fileCreateVariables = {
             files: [
