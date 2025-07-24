@@ -29,7 +29,7 @@ export async function processCSVHeaders(
     }
 
     // Process the header row (first line)
-    const originalHeaders = lines[0].split(","); // Assuming tab-separated
+    const originalHeaders = lines[0].split(",");
     const newHeaders = originalHeaders.map((header) => {
       const trimmedHeader = header.trim();
       return HEADER_MAPPING[trimmedHeader] || trimmedHeader; // Use mapping or keep original
