@@ -31,7 +31,7 @@ export async function processCSVHeaders(
     // Process the header row (first line)
     const originalHeaders = lines[0].split(",");
     const newHeaders = originalHeaders.map((header) => {
-      const trimmedHeader = header.trim();
+      const trimmedHeader = header.trim().replace(/^"|"$/g, "");
       return HEADER_MAPPING[trimmedHeader] || trimmedHeader; // Use mapping or keep original
     });
 
