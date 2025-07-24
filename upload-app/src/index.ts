@@ -105,7 +105,6 @@ async function main() {
             client = getShopifyGraphqlClient();
           } catch (e) {
             console.error("not able to get a shopify graphql client", e);
-            await cleanupProcessedFile(processedFilePath);
             return;
           }
 
@@ -228,7 +227,7 @@ async function main() {
                 `Upload failed with status ${response.status}: ${response.statusText}`
               );
               console.error("Response body:", responseText);
-              await cleanupProcessedFile(processedFilePath);
+              // await cleanupProcessedFile(processedFilePath);
               return;
             }
           } catch (e) {
@@ -236,7 +235,7 @@ async function main() {
               `Failed to upload file ${filename} via http fetch:`,
               e
             );
-            await cleanupProcessedFile(processedFilePath);
+            // await cleanupProcessedFile(processedFilePath);
             return;
           }
           // final step: "register" the uploaded file with Shopify using fileCreate mutation
@@ -279,10 +278,10 @@ async function main() {
             console.dir(fileCreateResponse, { depth: null, colors: true });
             lastUploadedFileId = fileCreateResponse.data.fileCreate.files[0].id;
             // Clean up the processed file after successful upload
-            await cleanupProcessedFile(processedFilePath);
+            // await cleanupProcessedFile(processedFilePath);
           } catch (e) {
             console.error("Failed to register file via fileCreate:", e);
-            await cleanupProcessedFile(processedFilePath);
+            // await cleanupProcessedFile(processedFilePath);
           }
         }
       });
