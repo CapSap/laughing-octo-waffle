@@ -53,18 +53,3 @@ export async function processCSVHeaders(
     throw error;
   }
 }
-
-/**
- * Cleans up temporary processed files
- * @param {string} processedFilePath - Path to the processed file to delete
- */
-export async function cleanupProcessedFile(
-  processedFilePath: string
-): Promise<void> {
-  try {
-    await fs.promises.unlink(processedFilePath);
-    console.log(`Cleaned up processed file: ${processedFilePath}`);
-  } catch (error) {
-    console.error("Error cleaning up processed file:", error);
-  }
-}
