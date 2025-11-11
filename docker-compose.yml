@@ -33,6 +33,12 @@ services:
         target: shopify_api_key
       - source: shopify_api_secret_key
         target: shopify_api_secret_key
+  go-usa-app:
+    image: go-usa-app:latest
+    ports:
+      - go_network
+    deploy:
+      replicas: 1
 
 volumes:
   shared-data:
@@ -54,4 +60,18 @@ secrets:
   shopify_api_key:
     external: true
   shopify_api_secret_key:
+    external: true
+  go_remote_url:
+    external: true
+  go_remote_port:
+    external: true
+  go_remote_username:
+    external: true
+  go_remote_password:
+    external: true
+  go_remote_dir:
+    external: true
+  go_remote_filename:
+    external: true
+  sentry_dsn:
     external: true
