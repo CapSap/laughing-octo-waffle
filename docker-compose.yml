@@ -35,7 +35,7 @@ services:
         target: shopify_api_secret_key
   go-usa-app:
     image: go-usa-app:latest
-    ports:
+    networks:
       - go_network
     deploy:
       replicas: 1
