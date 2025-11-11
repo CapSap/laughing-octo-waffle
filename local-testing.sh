@@ -31,7 +31,7 @@ for IMAGE in "pro-ftpd:latest" "node-app:latest" "go-usa-app:latest"; do
     fi
 done
 
-echo "--- Creating/Updating Docker Secrets locally ---"
+echo "--- Creating/Updating Docker Secrets locally for shopify stack ---"
 SECRETS_TO_CREATE=(
     "SHOPIFY_SHOP_DOMAIN=shopify_shop_domain"
     "SERVER_HOST=server_host"
@@ -69,27 +69,27 @@ done
 echo "--- Creating secrets for go-usa-app ---"
 
 GO_SECRETS_TO_CREATE=(
-    "GO_REMOTE_URL=go_remote_url"
-    "GO_REMOTE_PORT=go_remote_port"
-    "GO_REMOTE_USERNAME=go_remote_username"
-    "GO_REMOTE_PASSWORD=go_remote_password"
-    "GO_REMOTE_DIR=go_remote_dir"
-    "GO_REMOTE_FILENAME=go_remote_filename"
+    "REMOTE_URL=go_remote_url"
+    "REMOTE_PORT=go_remote_port"
+    "REMOTE_USERNAME=go_remote_username"
+    "REMOTE_PASSWORD=go_remote_password"
+    "REMOTE_DIR=go_remote_dir"
+    "REMOTE_FILENAME=go_remote_filename"
     "SENTRY_DSN=sentry_dsn"
 )
 
 # Check if go app .env exists, if not create dummy values for testing
 if [ -f "./go-usa-stock/.env" ]; then
-    echo "Loading go-usa-app secrets from ./.env"
-    source "./go-use-stock/.env"
+    echo "Loading go-usa-app secrets from ./go-usa-stock.env"
+    source "./go-usa-stock/.env"
 else
     echo "WARNING: ./.env not found. Creating dummy secrets for testing."
-    GO_REMOTE_URL="ftp.example.com"
-    GO_REMOTE_PORT="21"
-    GO_REMOTE_USERNAME="testuser"
-    GO_REMOTE_PASSWORD="testpass"
-    GO_REMOTE_DIR="/remote/dir"
-    GO_REMOTE_FILENAME="test.csv"
+    REMOTE_URL="ftp.example.com"
+    REMOTE_PORT="21"
+    REMOTE_USERNAME="testuser"
+    REMOTE_PASSWORD="testpass"
+    REMOTE_DIR="/remote/dir"
+    REMOTE_FILENAME="test.csv"
     SENTRY_DSN="https://dummy@sentry.io/123456"
 fi
 
