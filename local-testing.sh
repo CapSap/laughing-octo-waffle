@@ -19,7 +19,12 @@ docker build -t "node-app:latest" ./upload-app || {
     exit 1
 }
 
-for IMAGE in "pro-ftpd:latest" "node-app:latest"; do
+docker build -t "go-usa-app:latest" ./go-usa-stock || {
+    echo "ERROR: Failed to build go-usa-app image."
+    exit 1
+}
+
+for IMAGE in "pro-ftpd:latest" "node-app:latest" "go-usa-app:latest"; do
     if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
         echo "ERROR: Image '$IMAGE' does not exist after build. Aborting."
         exit 1
@@ -58,6 +63,52 @@ for SECRET_PAIR in "${SECRETS_TO_CREATE[@]}"; do
     || { echo "ERROR: Failed to create Docker secret '$SECRET_NAME'."; exit 1; }
     echo "  - Secret '$SECRET_NAME' created/updated."
 done
+
+
+# New secrets for go-usa-app
+echo "--- Creating secrets for go-usa-app ---"
+
+GO_SECRETS_TO_CREATE=(
+    "GO_REMOTE_URL=go_remote_url"
+    "GO_REMOTE_PORT=go_remote_port"
+    "GO_REMOTE_USERNAME=go_remote_username"
+    "GO_REMOTE_PASSWORD=go_remote_password"
+    "GO_REMOTE_DIR=go_remote_dir"
+    "GO_REMOTE_FILENAME=go_remote_filename"
+    "SENTRY_DSN=sentry_dsn"
+)
+
+# Check if go app .env exists, if not create dummy values for testing
+if [ -f "./go-usa-stock/.env" ]; then
+    echo "Loading go-usa-app secrets from ./.env"
+    source "./go-use-stock/.env"
+else
+    echo "WARNING: ./.env not found. Creating dummy secrets for testing."
+    GO_REMOTE_URL="ftp.example.com"
+    GO_REMOTE_PORT="21"
+    GO_REMOTE_USERNAME="testuser"
+    GO_REMOTE_PASSWORD="testpass"
+    GO_REMOTE_DIR="/remote/dir"
+    GO_REMOTE_FILENAME="test.csv"
+    SENTRY_DSN="https://dummy@sentry.io/123456"
+fi
+
+for SECRET_PAIR in "${GO_SECRETS_TO_CREATE[@]}"; do
+    ENV_VAR_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f1)
+    SECRET_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f2)
+    SECRET_VALUE="${!ENV_VAR_NAME}"
+    
+    if [ -z "$SECRET_VALUE" ]; then
+        echo "WARNING: Variable '$ENV_VAR_NAME' is empty. Creating empty secret '$SECRET_NAME'."
+        SECRET_VALUE="dummy"
+    fi
+    
+    docker secret rm "$SECRET_NAME" 2>/dev/null || true
+    echo "$SECRET_VALUE" | docker secret create "$SECRET_NAME" - \
+    || { echo "ERROR: Failed to create Docker secret '$SECRET_NAME'."; exit 1; }
+    echo "  - Secret '$SECRET_NAME' created/updated."
+done
+
 
 # --- DIAGNOSTIC STEP: Check if secrets are listed immediately after creation ---
 echo "--- Verifying secrets are listed by Docker Swarm before deploy ---"
