@@ -35,7 +35,8 @@ services:
         target: shopify_api_secret_key
   go-usa-app:
     image: go-usa-app:latest
-    ports: "2223:22" # 22 is the port the app is lisenting to, and docker will route requests from 2223 to 22
+    ports:
+      - "2223:22" # 22 is the port the app is lisenting to, and docker will route requests from 2223 to 22
     networks:
       - go_network
     deploy:
