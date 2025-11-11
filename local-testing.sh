@@ -31,7 +31,7 @@ for IMAGE in "pro-ftpd:latest" "node-app:latest" "go-usa-app:latest"; do
     fi
 done
 
-echo "--- Creating/Updating Docker Secrets locally for shopify stack ---"
+echo -e "\n--- Creating/Updating Docker Secrets locally for shopify stack ---"
 SECRETS_TO_CREATE=(
     "SHOPIFY_SHOP_DOMAIN=shopify_shop_domain"
     "SERVER_HOST=server_host"
@@ -66,7 +66,7 @@ done
 
 
 # New secrets for go-usa-app
-echo "--- Creating secrets for go-usa-app ---"
+echo -e "\n--- Creating secrets for go-usa-app ---"
 
 GO_SECRETS_TO_CREATE=(
     "REMOTE_URL=go_remote_url"
