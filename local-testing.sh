@@ -4,6 +4,26 @@ set -e # Exit immediately if a command exits with a non-zero status.
 STACK_NAME="local-app-stack"
 COMPOSE_FILE="docker-compose.yml" # Use the main docker-compose.yml file
 
+echo "--- Removing existing stack (if any) ---"
+docker stack rm "$STACK_NAME" 2>/dev/null || true
+
+# Wait until all services from the stack are gone
+echo "Waiting for stack '$STACK_NAME' to fully remove..."
+while docker stack ls | grep -q "$STACK_NAME"; do
+    # Only show the output if we are still waiting
+    echo -n "."
+    sleep 1
+done
+echo "Stack '$STACK_NAME' removed."
+
+# Wait until old networks are fully cleaned up
+echo "Waiting for networks from '$STACK_NAME' to be fully removed..."
+while docker network ls  | grep -q "^${STACK_NAME}_"; do
+    echo -n "."
+    sleep 1
+done
+echo "All networks for '$STACK_NAME' removed."
+
 echo "--- Initializing Docker Swarm (if not already) ---"
 docker swarm init 2>/dev/null || true
 
