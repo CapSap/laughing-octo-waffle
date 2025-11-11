@@ -39,6 +39,17 @@ services:
       - go_network
     deploy:
       replicas: 1
+    secrets:
+      - source: go_remote_password
+        target: go_remote_password
+      - source: go_remote_port
+        target: go_remote_port
+      - source: go_remote_url
+        target: go_remote_url
+      - source: go_remote_username
+        target: go_remote_username
+      - source: sentry_dsn
+        target: sentry_dsn
 
 volumes:
   shared-data:
@@ -50,6 +61,7 @@ networks:
     # or other services to this network later (not strictly needed for your current setup).
     # You could also specify `encrypted: true` here if you wanted encrypted overlay networks.
   go_network:
+    driver: overlay
 
 secrets:
   shopify_shop_domain:
@@ -69,10 +81,6 @@ secrets:
   go_remote_username:
     external: true
   go_remote_password:
-    external: true
-  go_remote_dir:
-    external: true
-  go_remote_filename:
     external: true
   sentry_dsn:
     external: true
