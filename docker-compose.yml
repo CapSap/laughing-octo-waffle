@@ -49,6 +49,7 @@ networks:
     driver: overlay
     # or other services to this network later (not strictly needed for your current setup).
     # You could also specify `encrypted: true` here if you wanted encrypted overlay networks.
+  go_network:
 
 secrets:
   shopify_shop_domain:
