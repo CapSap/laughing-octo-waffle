@@ -50,6 +50,10 @@ services:
         target: go_remote_username
       - source: sentry_dsn
         target: sentry_dsn
+      - source: ssh_host_rsa_key_go_usa
+        target: ssh_host_rsa_key_go_usa
+      - source: ssh_host_rsa_key_go_usa_pub
+        target: ssh_host_rsa_key_go_usa_pub
 
 volumes:
   shared-data:
@@ -83,4 +87,8 @@ secrets:
   go_remote_password:
     external: true
   sentry_dsn:
+    external: true
+  ssh_host_rsa_key_go_usa:
+    external: true
+  ssh_host_rsa_key_go_usa_pub:
     external: true
