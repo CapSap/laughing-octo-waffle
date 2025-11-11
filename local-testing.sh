@@ -129,6 +129,41 @@ for SECRET_PAIR in "${GO_SECRETS_TO_CREATE[@]}"; do
     echo "  - Secret '$SECRET_NAME' created/updated."
 done
 
+# Add go server host keys and allowed client keys
+echo -e "\n--- Adding server keys ---"
+
+# Check and create host private key
+if [ -f "./go-usa-stock/keys/ssh_host_rsa_key_go_usa" ]; then
+    docker secret rm ssh_host_rsa_key_go_usa 2>/dev/null || true
+    docker secret create ssh_host_rsa_key_go_usa ./go-usa-stock/keys/ssh_host_rsa_key_go_usa \
+    || { echo "ERROR: Failed to create ssh_host_rsa_key_go_usa secret"; exit 1; }
+    echo "  ✓ Created secret: ssh_host_rsa_key_go_usa"
+else
+    echo "ERROR: Host key not found at ./go-usa-stock/keys/ssh_host_rsa_key_go_usa"
+    exit 1
+fi
+
+# Check and create host public key
+if [ -f "./go-usa-stock/keys/ssh_host_rsa_key_go_usa.pub" ]; then
+    docker secret rm ssh_host_rsa_key_go_usa_pub 2>/dev/null || true
+    docker secret create ssh_host_rsa_key_go_usa_pub ./go-usa-stock/keys/ssh_host_rsa_key_go_usa.pub \
+    || { echo "ERROR: Failed to create ssh_host_rsa_key_go_usa_pub secret"; exit 1; }
+    echo "  ✓ Created secret: ssh_host_rsa_key_go_usa_pub"
+else
+    echo "ERROR: Host public key not found at ./go-usa-stock/keys/ssh_host_rsa_key_go_usa.pub"
+    exit 1
+fi
+
+# Check and create authorized_keys
+if [ -f "./go-usa-stock/keys/authorised/id_rsa.pub" ]; then
+    docker secret rm authorized_keys 2>/dev/null || true
+    docker secret create authorized_keys ./go-usa-stock/keys/authorised/id_rsa.pub\
+    || { echo "ERROR: Failed to create authorized_keys secret"; exit 1; }
+    echo "  ✓ Created secret: authorized_keys"
+else
+    echo "ERROR: authorized_keys not found at ./go-usa-stock/keys/authorised/id_rsa.pub "
+    exit 1
+fi
 
 # --- DIAGNOSTIC STEP: Check if secrets are listed immediately after creation ---
 echo "--- Verifying secrets are listed by Docker Swarm before deploy ---"
