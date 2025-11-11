@@ -14,6 +14,7 @@ services:
         condition: on-failure # Restart if container fails
   node-app:
     image: node-app:latest
+    ports: 2223:22 # 22 is the port the app is lisenting to, and docker will route requests from 2223 to 22
     volumes:
       - shared-data:/uploads
     networks:
