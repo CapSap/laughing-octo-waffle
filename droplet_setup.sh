@@ -75,6 +75,7 @@ sudo apt install -y ufw # Ensure ufw is installed
 
 sudo ufw allow OpenSSH         # Keep SSH access
 sudo ufw allow 2222/tcp        # For SFTP via proFTP 
+sudo ufw allow 2223/tcp        # For SFTP via go-usa-app
 
 sudo ufw allow 2377/tcp        # Docker Swarm management port (for other managers)
 sudo ufw allow 7946/tcp        # for overlay network node discovery
