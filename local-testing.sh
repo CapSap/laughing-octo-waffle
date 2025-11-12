@@ -7,8 +7,6 @@ COMPOSE_FILE="docker-compose.yml" # Use the main docker-compose.yml file
 echo "--- Removing existing stack (if any) ---"
 docker stack rm "$STACK_NAME" 2>/dev/null || true
 
-echo "rm go app volumne"
-docker volume rm -f local-app-stack_go-app
 
 # Wait until all services from the stack are gone
 echo "Waiting for stack '$STACK_NAME' to fully remove..."
@@ -18,6 +16,9 @@ while docker stack ls | grep -q "$STACK_NAME"; do
     sleep 1
 done
 echo "Stack '$STACK_NAME' removed."
+
+echo "rm go app volumne"
+docker volume rm -f local-app-stack_go-app
 
 # Wait until old networks are fully cleaned up
 echo "Waiting for networks from '$STACK_NAME' to be fully removed..."
