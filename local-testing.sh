@@ -17,9 +17,6 @@ while docker stack ls | grep -q "$STACK_NAME"; do
 done
 echo "Stack '$STACK_NAME' removed."
 
-echo "rm go app volumne"
-docker volume rm -f local-app-stack_go-app
-
 # Wait until old networks are fully cleaned up
 echo "Waiting for networks from '$STACK_NAME' to be fully removed..."
 while docker network ls  | grep -q "^${STACK_NAME}_"; do
