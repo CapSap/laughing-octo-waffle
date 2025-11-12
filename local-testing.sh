@@ -154,17 +154,6 @@ else
     exit 1
 fi
 
-# Check and create authorized_keys
-if [ -f "./go-usa-stock/keys/authorised/id_rsa.pub" ]; then
-    docker secret rm authorized_keys 2>/dev/null || true
-    docker secret create authorized_keys ./go-usa-stock/keys/authorised/id_rsa.pub\
-    || { echo "ERROR: Failed to create authorized_keys secret"; exit 1; }
-    echo "  ✓ Created secret: authorized_keys"
-else
-    echo "ERROR: authorized_keys not found at ./go-usa-stock/keys/authorised/id_rsa.pub "
-    exit 1
-fi
-
 # --- DIAGNOSTIC STEP: Check if secrets are listed immediately after creation ---
 echo "--- Verifying secrets are listed by Docker Swarm before deploy ---"
 docker secret ls
