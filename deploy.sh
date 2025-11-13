@@ -99,11 +99,7 @@ run_remote "cd $PROJECT_DIR && \
         git remote add origin $GIT_REPO_URL && \
         git pull origin $GIT_BRANCH; \
     fi && \
-    git submodule update --init && \
-    cd ./go-usa-stock && \
-    git checkout mono && \
-    git pull origin mono && \
-    cd .. 
+    git submodule update --init 
     "
 
 # 2. Create Docker Secrets on the remote Droplet
