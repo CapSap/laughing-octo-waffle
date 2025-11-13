@@ -174,6 +174,34 @@ for SECRET_PAIR in "${GO_SECRETS_TO_CREATE[@]}"; do
     echo "  - Secret '$SECRET_NAME' created/updated."
 done
 
+# Define the local paths and corresponding secret names
+KEY_SECRETS=(
+    "./go-usa-stock/keys/ssh_host_rsa_key_go_usa:ssh_host_rsa_key_go_usa"
+    "./go-usa-stock/keys/ssh_host_rsa_key_go_usa.pub:ssh_host_rsa_key_go_usa_pub"
+)
+
+for KEY_PAIR in "${KEY_SECRETS[@]}"; do
+    LOCAL_PATH=$(echo "$KEY_PAIR" | cut -d':' -f1)
+    SECRET_NAME=$(echo "$KEY_PAIR" | cut -d':' -f2)
+
+    if [ ! -f "$LOCAL_PATH" ]; then
+        log_error "Key file not found at '$LOCAL_PATH'. Cannot create secret '$SECRET_NAME'."
+        exit 1
+    fi
+
+    # 1. Remove the old secret remotely
+    run_remote "docker secret rm $SECRET_NAME 2>/dev/null || true"
+
+    # 2. Create the new secret remotely by piping the local file content
+    echo "  - Creating secret '$SECRET_NAME' from local file '$LOCAL_PATH'"
+    # The secret name is passed as an argument to the remote command.
+    # The file content is read locally and piped to the remote 'docker secret create'.
+    cat "$LOCAL_PATH" | run_remote "docker secret create $SECRET_NAME -" \
+    || log_error "Failed to create Docker secret '$SECRET_NAME'."
+    echo "   Secret '$SECRET_NAME' created successfully"  # Add this line
+
+done
+
 # 3. Stop existing containers gracefully
 log_info "Stopping existing containers..."
 run_remote "cd $PROJECT_DIR && docker compose down || true"
