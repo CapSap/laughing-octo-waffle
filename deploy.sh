@@ -52,7 +52,7 @@ set -e # Exit immediately if a command exits with a non-zero status.
 run_remote() {
     local command="$@"
     if [ "$IS_LOCAL" = true ]; then
-        eval "$command"
+       eval "$command"
     else 
         log_info "Executing remotely on $DROPLET_HOST: '$command'"
         # using ssh-agent now so don't need to specific the key path
@@ -84,8 +84,6 @@ if [ -z "$STACK_NAME" ]; then
     exit 1
 fi
 log_info "Configuration looks good. Starting deployment..."
-# Add similar checks for other critical variables
-log_info "Configuration looks good. Starting deployment..."
 
 # --- Deployment Steps (These remain the same as before) ---
 
@@ -100,7 +98,9 @@ run_remote "cd $PROJECT_DIR && \
         git init && \
         git remote add origin $GIT_REPO_URL && \
         git pull origin $GIT_BRANCH; \
-    fi"
+    fi && \
+    git submodule update --init 
+    "
 
 # 2. Create Docker Secrets on the remote Droplet
 log_info "Creating/Updating Docker Secrets on the Droplet..."
@@ -137,6 +137,73 @@ for SECRET_PAIR in "${SECRETS_TO_CREATE[@]}"; do
     echo "  - Secret '$SECRET_NAME' created/updated."
 done
 
+# create go app secrets
+# New secrets for go-usa-app
+echo -e "\n--- Creating secrets for go-usa-app ---"
+
+GO_SECRETS_TO_CREATE=(
+    "REMOTE_URL=go_remote_url"
+    "REMOTE_PORT=go_remote_port"
+    "REMOTE_USERNAME=go_remote_username"
+    "REMOTE_PASSWORD=go_remote_password"
+    "REMOTE_DIR=go_remote_dir"
+    "REMOTE_FILENAME=go_remote_filename"
+    "SENTRY_DSN=sentry_dsn"
+)
+
+# Check if go app .env exists, if not create dummy values for testing
+if [ -f "./go-usa-stock/.env" ]; then
+    echo "Loading go-usa-app secrets from ./go-usa-stock.env"
+    source "./go-usa-stock/.env"
+else
+    echo "WARNING: ./go-usa-stock/.env not found. "
+    exit 1
+fi
+
+for SECRET_PAIR in "${GO_SECRETS_TO_CREATE[@]}"; do
+    ENV_VAR_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f1)
+    SECRET_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f2)
+    SECRET_VALUE="${!ENV_VAR_NAME}"
+    
+    if [ -z "$SECRET_VALUE" ]; then
+        echo "ERROR: Local .env variable '$ENV_VAR_NAME' is empty or not found after sourcing. Cannot create secret '$SECRET_NAME'."
+        exit 1
+    fi
+    
+    run_remote docker secret rm "$SECRET_NAME" 2>/dev/null || true
+    echo "$SECRET_VALUE" | run_remote docker secret create "$SECRET_NAME" - \
+    || { echo "ERROR: Failed to create Docker secret '$SECRET_NAME'."; exit 1; }
+    echo "  - Secret '$SECRET_NAME' created/updated."
+done
+
+# Define the local paths and corresponding secret names
+KEY_SECRETS=(
+    "./go-usa-stock/keys/ssh_host_rsa_key_go_usa:ssh_host_rsa_key_go_usa"
+    "./go-usa-stock/keys/ssh_host_rsa_key_go_usa.pub:ssh_host_rsa_key_go_usa_pub"
+)
+
+for KEY_PAIR in "${KEY_SECRETS[@]}"; do
+    LOCAL_PATH=$(echo "$KEY_PAIR" | cut -d':' -f1)
+    SECRET_NAME=$(echo "$KEY_PAIR" | cut -d':' -f2)
+
+    if [ ! -f "$LOCAL_PATH" ]; then
+        log_error "Key file not found at '$LOCAL_PATH'. Cannot create secret '$SECRET_NAME'."
+        exit 1
+    fi
+
+    # 1. Remove the old secret remotely
+    run_remote "docker secret rm $SECRET_NAME 2>/dev/null || true"
+
+    # 2. Create the new secret remotely by piping the local file content
+    echo "  - Creating secret '$SECRET_NAME' from local file '$LOCAL_PATH'"
+    # The secret name is passed as an argument to the remote command.
+    # The file content is read locally and piped to the remote 'docker secret create'.
+    cat "$LOCAL_PATH" | run_remote "docker secret create $SECRET_NAME -" \
+    || log_error "Failed to create Docker secret '$SECRET_NAME'."
+    echo "   Secret '$SECRET_NAME' created successfully"  # Add this line
+
+done
+
 # 3. Stop existing containers gracefully
 log_info "Stopping existing containers..."
 run_remote "cd $PROJECT_DIR && docker compose down || true"
@@ -148,6 +215,7 @@ run_remote "docker stack rm $STACK_NAME || true" # Use '|| true' to prevent scri
 # build
 run_remote docker build -t pro-ftpd:latest $PROJECT_DIR/pro
 run_remote docker build -t node-app:latest $PROJECT_DIR/upload-app
+run_remote docker build -t go-usa-stock:latest $PROJECT_DIR/go-usa-stock
 
 # 4. Deploy the Docker Swarm stack
 log_info "Deploying Docker Swarm stack '$STACK_NAME'..."

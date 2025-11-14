@@ -1,0 +1,3 @@
+[submodule "go-usa-stock"]
+	path = go-usa-stock
+	url = https://github.com/Charlie-EB/usa-stock.git

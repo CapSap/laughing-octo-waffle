@@ -1,4 +1,4 @@
-# deliver a live stock view for customers
+# docker swarm orchestrator + deliver a live stock view for customers
 
 - Problem this app is solving: We want to provide our customers with a live stock level.
   - matrixify can upload to server so thats what we're doing. using sftp
@@ -57,4 +57,15 @@ A challenge was handleing the env variables/secrets for the node app- to handle 
 - [x] add fail2ban (lets see if there is a need)
 - [x] whitelist ip address (this can be done in digital ocean)
 - [x] deploy!
-- [ ] use a more efficient docker image (we could build the node ts app in a builder image and then remove the build tools/src files and run it with a barebones docker node image)
+- [x] use a more efficient docker image (we could build the node ts app in a builder image and then remove the build tools/src files and run it with a barebones docker node image)
+
+# adding a new service: go app- ftp middleware
+
+problem: we had a working script in netsuite that would get a file from a ftp server. the broken part was that the file had grown beyond the 100mb netsuite file size limit. this fix would get the file, make it smaller and make it avaliable for the netsuite script.
+
+just leaving some notes for myself for next time:
+
+- the go sftp package is not a full blown sftp server- it just handles some of the request response and i had to write my own fs handlers
+- i went with mono repo for simiplicity (ha) and i think eventually it would be good to split some of these apps out into their own repos, and have this repo only have the orchestration stuff. (deploy scripts, and testing scripts)
+- or maybe each app should have its own deploy.sh that is called from the orchestrator? not sure.
+- i got to mess about with git submodules
