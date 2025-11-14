@@ -52,7 +52,7 @@ set -e # Exit immediately if a command exits with a non-zero status.
 run_remote() {
     local command="$@"
     if [ "$IS_LOCAL" = true ]; then
-        (cd "$PROJECT_DIR" && eval "$command")
+         eval "$command"
     else 
         log_info "Executing remotely on $DROPLET_HOST: '$command'"
         # using ssh-agent now so don't need to specific the key path
