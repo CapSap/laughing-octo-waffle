@@ -54,6 +54,18 @@ services:
         target: sanmar_remote_url
       - source: sanmar_remote_username
         target: sanmar_remote_username
+      - source: chefworks_remote_url
+        target: chefworks_remote_url
+      - source: chefworks_remote_port
+        target: chefworks_remote_port
+      - source: chefworks_remote_username
+        target: chefworks_remote_username
+      - source: chefworks_remote_password
+        target: chefworks_remote_password
+      - source: chefworks_remote_dir
+        target: chefworks_remote_dir
+      - source: chefworks_remote_filename
+        target: chefworks_remote_filename
       - source: sentry_dsn
         target: sentry_dsn
       - source: ssh_host_rsa_key_go_usa
@@ -92,6 +104,18 @@ secrets:
   sanmar_remote_username:
     external: true
   sanmar_remote_password:
+    external: true
+  chefworks_remote_url:
+    external: true
+  chefworks_remote_port:
+    external: true
+  chefworks_remote_username:
+    external: true
+  chefworks_remote_password:
+    external: true
+  chefworks_remote_dir:
+    external: true
+  chefworks_remote_filename:
     external: true
   sentry_dsn:
     external: true

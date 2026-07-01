@@ -149,6 +149,12 @@ GO_SECRETS_TO_CREATE=(
     "SANMAR_REMOTE_DIR=sanmar_remote_dir"
     "SANMAR_REMOTE_FILENAME=sanmar_remote_filename"
     "SENTRY_DSN=sentry_dsn"
+    "CHEFWORKS_REMOTE_URL=chefworks_remote_url"
+    "CHEFWORKS_REMOTE_PORT=chefworks_remote_port"
+    "CHEFWORKS_REMOTE_USERNAME=chefworks_remote_username"
+    "CHEFWORKS_REMOTE_PASSWORD=chefworks_remote_password"
+    "CHEFWORKS_REMOTE_DIR=chefworks_remote_dir"
+    "CHEFWORKS_REMOTE_FILENAME=chefworks_remote_filename"
 )
 
 # Check if go app .env exists, if not create dummy values for testing
