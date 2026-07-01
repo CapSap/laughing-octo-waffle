@@ -46,14 +46,14 @@ services:
     deploy:
       replicas: 1
     secrets:
-      - source: go_remote_password
-        target: go_remote_password
-      - source: go_remote_port
-        target: go_remote_port
-      - source: go_remote_url
-        target: go_remote_url
-      - source: go_remote_username
-        target: go_remote_username
+      - source: sanmar_remote_password
+        target: sanmar_remote_password
+      - source: sanmar_remote_port
+        target: sanmar_remote_port
+      - source: sanmar_remote_url
+        target: sanmar_remote_url
+      - source: sanmar_remote_username
+        target: sanmar_remote_username
       - source: sentry_dsn
         target: sentry_dsn
       - source: ssh_host_rsa_key_go_usa
@@ -85,13 +85,13 @@ secrets:
     external: true
   shopify_api_secret_key:
     external: true
-  go_remote_url:
+  sanmar_remote_url:
     external: true
-  go_remote_port:
+  sanmar_remote_port:
     external: true
-  go_remote_username:
+  sanmar_remote_username:
     external: true
-  go_remote_password:
+  sanmar_remote_password:
     external: true
   sentry_dsn:
     external: true

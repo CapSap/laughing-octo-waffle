@@ -90,12 +90,12 @@ done
 echo -e "\n--- Creating secrets for go-usa-app ---"
 
 GO_SECRETS_TO_CREATE=(
-    "REMOTE_URL=go_remote_url"
-    "REMOTE_PORT=go_remote_port"
-    "REMOTE_USERNAME=go_remote_username"
-    "REMOTE_PASSWORD=go_remote_password"
-    "REMOTE_DIR=go_remote_dir"
-    "REMOTE_FILENAME=go_remote_filename"
+    "SANMAR_REMOTE_URL=sanmar_remote_url"
+    "SANMAR_REMOTE_PORT=sanmar_remote_port"
+    "SANMAR_REMOTE_USERNAME=sanmar_remote_username"
+    "SANMAR_REMOTE_PASSWORD=sanmar_remote_password"
+    "SANMAR_REMOTE_DIR=sanmar_remote_dir"
+    "SANMAR_REMOTE_FILENAME=sanmar_remote_filename"
     "SENTRY_DSN=sentry_dsn"
 )
 
@@ -105,12 +105,12 @@ if [ -f "./go-usa-stock/.env" ]; then
     source "./go-usa-stock/.env"
 else
     echo "WARNING: ./.env not found. Creating dummy secrets for testing."
-    REMOTE_URL="ftp.example.com"
-    REMOTE_PORT="21"
-    REMOTE_USERNAME="testuser"
-    REMOTE_PASSWORD="testpass"
-    REMOTE_DIR="/remote/dir"
-    REMOTE_FILENAME="test.csv"
+    SANMAR_REMOTE_URL="ftp.example.com"
+    SANMAR_REMOTE_PORT="21"
+    SANMAR_REMOTE_USERNAME="testuser"
+    SANMAR_REMOTE_PASSWORD="testpass"
+    SANMAR_REMOTE_DIR="/remote/dir"
+    SANMAR_REMOTE_FILENAME="test.csv"
     SENTRY_DSN="https://dummy@sentry.io/123456"
 fi
 
