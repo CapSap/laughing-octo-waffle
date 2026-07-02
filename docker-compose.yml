@@ -66,6 +66,10 @@ services:
         target: chefworks_remote_dir
       - source: chefworks_remote_filename
         target: chefworks_remote_filename
+      - source: chefworks_healthcheck_url
+        target: chefworks_healthcheck_url
+      - source: sanmar_healthcheck_url
+        target: sanmar_healthcheck_url
       - source: sentry_dsn
         target: sentry_dsn
       - source: ssh_host_rsa_key_go_usa
@@ -116,6 +120,10 @@ secrets:
   chefworks_remote_dir:
     external: true
   chefworks_remote_filename:
+    external: true
+  chefworks_healthcheck_url:
+    external: true
+  sanmar_healthcheck_url:
     external: true
   sentry_dsn:
     external: true

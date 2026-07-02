@@ -114,6 +114,8 @@ GO_SECRETS_TO_CREATE=(
     "CHEFWORKS_REMOTE_PASSWORD=chefworks_remote_password"
     "CHEFWORKS_REMOTE_DIR=chefworks_remote_dir"
     "CHEFWORKS_REMOTE_FILENAME=chefworks_remote_filename"
+    "CHEFWORKS_HEALTHCHECK_URL=chefworks_healthcheck_url"
+    "SANMAR_HEALTHCHECK_URL=sanmar_healthcheck_url"
 )
 
 # Check if go app .env exists, if not create dummy values for testing
