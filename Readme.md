@@ -59,6 +59,12 @@ A challenge was handleing the env variables/secrets for the node app- to handle 
 - [x] deploy!
 - [x] use a more efficient docker image (we could build the node ts app in a builder image and then remove the build tools/src files and run it with a barebones docker node image)
 
+## low priority - cant be bothered right now, only if i have the energy some day
+
+- [ ] node app: report caught upload failures to sentry with captureException (right now catch blocks only console.error + ping healthchecks /fail, so sentry issue alerts never fire for uploads. go app already does this via Notify())
+- [ ] sentry: set a real release (git sha at build time) and environment in both apps instead of hardcoded "dev" - makes regression detection ("resolved becomes unresolved") meaningful
+- [ ] betterstack: tcp port monitors on 2222 (proftpd/matrixify inbound) and 2223 (go app sftp that netsuite fetches from) - the one layer healthchecks/sentry dont cover. remember to allowlist betterstack probe ips in the DO firewall or it will always read down
+
 # adding a new service: go app- ftp middleware
 
 problem: we had a working script in netsuite that would get a file from a ftp server. the broken part was that the file had grown beyond the 100mb netsuite file size limit. this fix would get the file, make it smaller and make it avaliable for the netsuite script.
