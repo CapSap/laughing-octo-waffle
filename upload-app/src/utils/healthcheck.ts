@@ -1,6 +1,6 @@
 import { readDockerSecret } from "./readDockerSecret.js";
 
-const SECRET_NAME = "upload_healthcheck_url";
+const SECRET_NAME = "eb_stock_on_hand_file_upload_healthcheck_url";
 
 let cachedUrl: string | null | undefined;
 
