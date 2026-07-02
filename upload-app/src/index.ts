@@ -6,6 +6,7 @@ import "dotenv/config";
 import { uploadsDir } from "./utils/config.js";
 import { getShopifyGraphqlClient, initShopify } from "./shop.js";
 import { cleanupOldFiles } from "./utils/cleanup.js";
+import { pingHealthcheck } from "./utils/healthcheck.js";
 import { processCSVHeaders } from "./utils/headerReplace.js";
 
 fs.mkdir(uploadsDir, { recursive: true }, (err) => {
@@ -83,6 +84,7 @@ async function main() {
             processedFilePath = await processCSVHeaders(fullPath);
           } catch (error) {
             console.error(`Failed to process headers for ${filename}:`, error);
+            await pingHealthcheck(true);
             return;
           }
           /* 3 step process:
@@ -102,6 +104,7 @@ async function main() {
             client = getShopifyGraphqlClient();
           } catch (e) {
             console.error("not able to get a shopify graphql client", e);
+            await pingHealthcheck(true);
             return;
           }
 
@@ -192,6 +195,7 @@ async function main() {
               `Failed to process file ${filename} with Shopify API:`,
               e
             );
+            await pingHealthcheck(true);
             return;
           }
           // setup for fetch
@@ -224,6 +228,7 @@ async function main() {
                 `Upload failed with status ${response.status}: ${response.statusText}`
               );
               console.error("Response body:", responseText);
+              await pingHealthcheck(true);
               return;
             }
           } catch (e) {
@@ -231,6 +236,7 @@ async function main() {
               `Failed to upload file ${filename} via http fetch:`,
               e
             );
+            await pingHealthcheck(true);
             return;
           }
           // final step: "register" the uploaded file with Shopify using fileCreate mutation
@@ -272,8 +278,10 @@ async function main() {
             console.log("File create response:");
             console.dir(fileCreateResponse, { depth: null, colors: true });
             lastUploadedFileId = fileCreateResponse.data.fileCreate.files[0].id;
+            await pingHealthcheck(false);
           } catch (e) {
             console.error("Failed to register file via fileCreate:", e);
+            await pingHealthcheck(true);
           }
         }
       });

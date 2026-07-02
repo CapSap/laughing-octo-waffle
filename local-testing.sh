@@ -70,6 +70,7 @@ SECRETS_TO_CREATE=(
     "SHOPIFY_ADMIN_API_ACCESS_TOKEN=shopify_admin_api_access_token"
     "SHOPIFY_API_KEY=shopify_api_key"
     "SHOPIFY_API_SECRET_KEY=shopify_api_secret_key"
+    "UPLOAD_HEALTHCHECK_URL=upload_healthcheck_url"
 )
 
 if [ ! -f "./upload-app/.env" ]; then

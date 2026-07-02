@@ -33,6 +33,8 @@ services:
         target: shopify_api_key
       - source: shopify_api_secret_key
         target: shopify_api_secret_key
+      - source: upload_healthcheck_url
+        target: upload_healthcheck_url
       - source: sentry_dsn
         target: sentry_dsn
   go-usa-stock:
@@ -100,6 +102,8 @@ secrets:
   shopify_api_key:
     external: true
   shopify_api_secret_key:
+    external: true
+  upload_healthcheck_url:
     external: true
   sanmar_remote_url:
     external: true
