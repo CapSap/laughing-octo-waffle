@@ -4,6 +4,16 @@ set -e # Exit immediately if a command exits with a non-zero status.
 STACK_NAME="local-app-stack"
 COMPOSE_FILE="docker-compose.yml" # Use the main docker-compose.yml file
 
+if ! command -v docker >/dev/null 2>&1; then
+    echo "ERROR: 'docker' command not found. If you're on WSL 2, start Docker Desktop and enable WSL integration for this distro (Settings > Resources > WSL integration)."
+    exit 1
+fi
+
+if ! docker info >/dev/null 2>&1; then
+    echo "ERROR: Docker daemon is not running or not reachable. Start Docker Desktop (or the docker service) and try again."
+    exit 1
+fi
+
 echo "--- Removing existing stack (if any) ---"
 docker stack rm "$STACK_NAME" 2>/dev/null || true
 
