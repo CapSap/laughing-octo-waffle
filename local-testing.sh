@@ -10,16 +10,27 @@ docker stack rm "$STACK_NAME" 2>/dev/null || true
 
 # Wait until all services from the stack are gone
 echo "Waiting for stack '$STACK_NAME' to fully remove..."
-while docker stack ls | grep -q "$STACK_NAME"; do
+while docker stack ls --format '{{.Name}}' | grep -qx "$STACK_NAME"; do
     # Only show the output if we are still waiting
     echo -n "."
     sleep 1
 done
 echo "Stack '$STACK_NAME' removed."
 
-# Wait until old networks are fully cleaned up
+# Stack rm is async: containers keep shutting down after the stack entry is
+# gone, and secrets/networks stay "in use" until the containers are removed.
+echo "Waiting for containers from '$STACK_NAME' to shut down..."
+while [ -n "$(docker ps -aq --filter "label=com.docker.stack.namespace=$STACK_NAME")" ]; do
+    echo -n "."
+    sleep 1
+done
+echo "All containers for '$STACK_NAME' removed."
+
+# Wait until old networks are fully cleaned up. Must match on the name via
+# --format: the raw 'docker network ls' output puts the ID column first, so
+# grepping it for ^name never matches and the loop wouldn't wait at all.
 echo "Waiting for networks from '$STACK_NAME' to be fully removed..."
-while docker network ls  | grep -q "^${STACK_NAME}_"; do
+while docker network ls --format '{{.Name}}' | grep -q "^${STACK_NAME}_"; do
     echo -n "."
     sleep 1
 done
@@ -179,4 +190,5 @@ echo "--- Or view logs with 'docker service logs node-app' ---"
 
 echo ""
 echo "To clean up all components locally after testing:"
-echo "docker stack rm $STACK_NAME && docker secret rm $(docker secret ls -q --filter name=${STACK_NAME}_) && docker image rm pro-ftpd:latest node-app:latest"
+# Secrets are external (not stack-prefixed), so this removes all swarm secrets.
+echo 'docker stack rm '"$STACK_NAME"' && docker secret rm $(docker secret ls -q) && docker image rm pro-ftpd:latest node-app:latest go-usa-stock:latest'
