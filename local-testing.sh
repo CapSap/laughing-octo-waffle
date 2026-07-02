@@ -40,12 +40,12 @@ docker build -t "node-app:latest" ./upload-app || {
     exit 1
 }
 
-docker build -t "go-usa-app:latest" ./go-usa-stock || {
-    echo "ERROR: Failed to build go-usa-app image."
+docker build -t "go-usa-stock:latest" ./go-usa-stock || {
+    echo "ERROR: Failed to build go-usa-stock image."
     exit 1
 }
 
-for IMAGE in "pro-ftpd:latest" "node-app:latest" "go-usa-app:latest"; do
+for IMAGE in "pro-ftpd:latest" "node-app:latest" "go-usa-stock:latest"; do
     if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
         echo "ERROR: Image '$IMAGE' does not exist after build. Aborting."
         exit 1
