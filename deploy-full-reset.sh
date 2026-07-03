@@ -1,6 +1,18 @@
 #!/bin/bash
+# DESTRUCTIVE full reset: tears down the ENTIRE stack (downtime for every
+# service) and recreates ALL secrets from local files — including the SFTP
+# host key that NetSuite pins, which silently changes if the local
+# go-usa-stock/keys/ files differ from what was deployed.
+#
+# Only for bootstrapping a fresh droplet (after droplet_setup.sh) or a
+# deliberate start-over. For routine deploys use ./deploy-stack.sh.
+#
+# Known limitation: against a RUNNING stack the secret recreation fails
+# ("in use" -> "already exists") and the script aborts partway. Run
+# `docker stack rm <stack>` on the droplet first if a full reset is
+# really what you want.
 if [[ "$1" == "--help" ]]; then
-    echo "Usage: ./deploy.sh [--local]"
+    echo "Usage: ./deploy-full-reset.sh [--local]"
     echo "  --local   Run all commands locally (no SSH)"
     exit 0
 fi

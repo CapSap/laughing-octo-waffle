@@ -31,7 +31,13 @@ A challenge was handleing the env variables/secrets for the node app- to handle 
 2. ssh into host, chmod script and Run it
    `ssh -i <path to key> <user@address>`
    `chomd +x ./script.sh`
-3. on local machine run the deploy.sh script (this will connect via ssh, run git and docker commands remotely, and passes in local env vars from host machine). Don't forget to run ssh-agent
+3. on local machine run the deploy-full-reset.sh script (this will connect via ssh, run git and docker commands remotely, and passes in local env vars from host machine). Don't forget to run ssh-agent
+
+Which deploy script to use:
+
+- `deploy-stack.sh` — the everyday one. Idempotent whole-stack deploy: creates only missing secrets, rebuilds images, and restarts only services whose image or spec changed. No downtime for untouched services.
+- `deploy-go.sh` — targeted go-usa-stock-only deploy (subset of deploy-stack.sh).
+- `deploy-full-reset.sh` — DESTRUCTIVE. Fresh-droplet bootstrap or deliberate start-over: tears down the whole stack and recreates all secrets (including the SFTP host key NetSuite pins). See warning at the top of the script.
 
 # swarm plan for me
 
@@ -39,7 +45,7 @@ A challenge was handleing the env variables/secrets for the node app- to handle 
 2. Create Secrets: Using SSH on your Droplet, you'll create a Docker secret for each of your Shopify API keys and other sensitive variables.
 3. Update docker-compose.yml: Modify your docker-compose.yml file (on your local machine) to tell Docker Swarm about the secrets and how your node-app service will use them.
 4. Update Node.js Code: Adjust your shop.ts file to read these secrets from the special /run/secrets/ file paths instead of process.env.
-5. Deploy: Use the docker stack deploy command to deploy your entire application to the Swarm. Your deploy.sh script will be updated to handle this process.
+5. Deploy: Use the docker stack deploy command to deploy your entire application to the Swarm. Your deploy scripts handle this process.
 
 # How to push changes
 

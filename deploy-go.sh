@@ -112,7 +112,7 @@ fi
 
 # 2. Create any MISSING secrets for the go service.
 # Swarm secrets are immutable while in use, so existing ones are skipped —
-# to rotate a secret value, use the full ./deploy.sh teardown deploy.
+# to rotate a secret value, see the rotation note in ./deploy-stack.sh.
 log_info "Creating missing Docker Secrets for go-usa-stock..."
 
 if [ -f "./go-usa-stock/.env" ]; then

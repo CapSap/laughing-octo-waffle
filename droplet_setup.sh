@@ -2,7 +2,7 @@
 
 # --- Configuration Variables for Initial Droplet Setup ---
 # These are internal to this setup script, don't change them unless you change paths on droplet
-PROJECT_DIR="/opt/sl-app" # Make sure this matches PROJECT_DIR in your deploy.sh
+PROJECT_DIR="/opt/sl-app" # Make sure this matches PROJECT_DIR in your deploy.env
 
 # --- Error Handling ---
 set -e
@@ -95,7 +95,7 @@ log_info final manual step: create docker secrets
 log_info 'use ssh-agent for only 1 x prompt "eval "$(ssh-agent -s)"'
 log_info "ssh-add ~/.ssh/droplet"
 log_info "ssh -i ~/.ssh/id_do_droplet_1 root@$DROPLET_HOST "
-log_info "./deploy.sh"
+log_info "./deploy-full-reset.sh"
 
 
 log_info "Initial Droplet setup completed!"
