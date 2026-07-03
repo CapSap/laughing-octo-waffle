@@ -113,3 +113,14 @@ Then run the real production script and confirm the downstream import.
 - [ ] `ssh-keyscan` host key captured and configured in NetSuite
 - [ ] NetSuite sandbox script downloads both files
 - [ ] Production script completes; refresh-on-read visible in logs/healthchecks
+
+## Progress log
+
+- **2026-07-03 — Phase 1 partially done.** Connected to the local swarm stack with
+  `sftp -P 2223 netsuite-client@localhost` (key-based auth) and listed both files:
+  - `CWI_INVENTORY.csv` — 299K, real content (confirms the FTPS session-reuse fix
+    in `fetcher/chefworks.go`; previously downloaded as 0 bytes)
+  - `sanmar_shopify.csv` — 1.4M
+
+  Still to do for Phase 1: negative checks (wrong username, wrong key, `put`
+  refused, path traversal refused).
