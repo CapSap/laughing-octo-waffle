@@ -145,8 +145,11 @@ ensure_secret() {
     echo "  - Secret '$name' created."
 }
 
-# node-app secrets, read from ./upload-app/.env (grep keeps the exact raw
-# value; the file is not sourced)
+# node-app secrets, read from ./upload-app/.env. The file is grepped rather
+# than sourced, so we strip one layer of surrounding quotes ourselves: a line
+# like KEY="https://..." must yield https://... , not the quoted string. This
+# mirrors what `source` does for the go secrets below. Without it the quotes
+# end up inside the secret and the node app's fetch(url) throws "Invalid URL".
 NODE_SECRETS=(
     "SHOPIFY_SHOP_DOMAIN=shopify_shop_domain"
     "SERVER_HOST=server_host"
@@ -163,7 +166,7 @@ fi
 for SECRET_PAIR in "${NODE_SECRETS[@]}"; do
     ENV_VAR_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f1)
     SECRET_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f2)
-    SECRET_VALUE=$(grep "^${ENV_VAR_NAME}=" ./upload-app/.env 2>/dev/null | cut -d'=' -f2-)
+    SECRET_VALUE=$(grep "^${ENV_VAR_NAME}=" ./upload-app/.env 2>/dev/null | cut -d'=' -f2- | sed -E 's/^(["'"'"'])(.*)\1$/\2/')
     ensure_secret "$SECRET_NAME" "$SECRET_VALUE"
 done
 

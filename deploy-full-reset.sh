@@ -133,8 +133,10 @@ for SECRET_PAIR in "${SECRETS_TO_CREATE[@]}"; do
     ENV_VAR_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f1)
     SECRET_NAME=$(echo "$SECRET_PAIR" | cut -d'=' -f2)
 
-    # Read the value from the local .env file
-    SECRET_VALUE=$(grep "^${ENV_VAR_NAME}=" ./upload-app/.env | cut -d'=' -f2-)
+    # Read the value from the local .env file. Grepped raw (not sourced), so
+    # strip one layer of surrounding quotes — otherwise KEY="https://..." lands
+    # in the secret with quotes and fetch(url) in the node app rejects it.
+    SECRET_VALUE=$(grep "^${ENV_VAR_NAME}=" ./upload-app/.env | cut -d'=' -f2- | sed -E 's/^(["'"'"'])(.*)\1$/\2/')
 
     if [ -z "$SECRET_VALUE" ]; then
         log_error "Local .env variable '$ENV_VAR_NAME' is empty or not found. Cannot create secret '$SECRET_NAME'."
