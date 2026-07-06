@@ -7,10 +7,13 @@
 # Adding a new service = add it to docker-compose.yml, its build dir to
 # SERVICE_NAMES/BUILD_DIRS below, and its secrets to the manifest. No new script.
 #
-# To rotate an existing secret (the deliberate exception, not the rule):
-#   docker service scale <stack>_<service>=0      # every service using it
+# To rotate an existing secret (the deliberate exception, not the rule).
+# Scaling to 0 does NOT release the secret: Swarm counts a secret as "in use"
+# whenever a service *spec* references it, regardless of replica count. You must
+# detach it from every service that references it before the secret can be removed:
+#   docker service update --secret-rm <name> <stack>_<service>   # every service using it
 #   docker secret rm <name>
-#   ./deploy-stack.sh                             # recreates secret, redeploys
+#   ./deploy-stack.sh                             # recreates secret, re-attaches, redeploys
 #
 # For a brand-new droplet, run droplet_setup.sh first; this script assumes
 # Docker Swarm is initialized and only converges from there.
