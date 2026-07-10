@@ -122,6 +122,8 @@ Which deploy script to use:
 - [ ] node app: report caught upload failures to sentry with captureException (right now catch blocks only console.error + ping healthchecks /fail, so sentry issue alerts never fire for uploads. go app already does this via Notify())
 - [ ] sentry: set a real release (git sha at build time) and environment in both apps instead of hardcoded "dev" - makes regression detection ("resolved becomes unresolved") meaningful
 - [ ] betterstack: tcp port monitors on 2222 (proftpd/matrixify inbound) and 2223 (go app sftp that netsuite fetches from) - the one layer healthchecks/sentry dont cover. remember to allowlist betterstack probe ips in the DO firewall or it will always read down
+- [ ] pro-ftpd: the sftp-keys volume mounts at /etc/proftp/keys but entry.sh generates and reads the host key at /etc/proftpd/keys (missing d). the volume has never held anything, so proftpd generates a fresh host key into the container layer every time swarm recreates the container - i.e. matrixify sees a new host key after every deploy. harmless while matrixify doesn't verify it, nasty the day a stricter client points at 2222
+- [ ] unexplained: something wiped the shared-data volume around the deploy on 2026-07-08. /uploads only had ~27h of files when it should hold 15 days, and the oldest survivor was an orphaned _processed.csv with no source. cleanupOldFiles didn't do it (15 day threshold). suspect a `docker system prune -a --volumes` run by hand to free disk. if it happens again, that's the reproduction - and it means every deploy is eating the audit trail
 
 # adding a new service: go app- ftp middleware
 
