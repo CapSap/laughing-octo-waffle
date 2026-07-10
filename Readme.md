@@ -24,6 +24,58 @@ The two main components are an FTP server and a node app. I went through 2 diffe
 
 A challenge was handleing the env variables/secrets for the node app- to handle this I am using docker swarm. Another challenge that im still working out is how to handle updates, monitoring and long term maintance of this thing
 
+# monitoring: healthchecks.io
+
+Three dead-man's-switch checks. Each pings on success and pings `<url>/fail` on
+error, so a *failure* alerts immediately and the grace period only governs how
+long we tolerate **silence**. That means grace can be generous without slowing
+down detection of real breakage.
+
+As configured on 2026-07-10:
+
+| check                        | period   | grace   | alerts after |
+| ---------------------------- | -------- | ------- | ------------ |
+| eb-stock-on-hand-file-upload | 1 hour   | 30 min  | 1h30m        |
+| sanmar-usa-stock             | 8 hours  | 3 hours | 11h          |
+| chefworks-usa-stock          | 25 hours | 6 hours | 31h          |
+
+The ping URLs live in docker secrets (`*_healthcheck_url`). The UUID in each URL
+is the credential — anyone holding it can ping or fail the check.
+
+## why these numbers
+
+**eb-stock-on-hand-file-upload** pings when a file lands in `/uploads` and the
+Shopify push completes. Nothing schedules it: the cadence is matrixify's export
+schedule, not ours. Observed arrivals sit at :30-:34 past the hour with 57-62
+minute gaps, so anything past ~65 minutes is a genuinely missed export. 30
+minutes of grace catches that fast without tripping on jitter. Don't go below
+~20: the export itself takes ~35 minutes to generate (compare the sydney-time
+stamp in the filename against the file's mtime), so a catalogue big enough to
+lengthen that will shift arrival times once before restabilising.
+
+**sanmar-usa-stock** and **chefworks-usa-stock** only ping when netsuite pulls
+the file over SFTP *and* it is stale — `server/fs.go` calls `EnsureFresh` on
+open, and `fetcher.go` returns early without pinging if the file is younger than
+`MaxAge` (7h sanmar, 24h chefworks). So the real interval is `MaxAge` plus
+however long until netsuite next polls. The grace has to cover that poll gap:
+at 8h/2h a legitimate 7h + 4h interval would page us falsely. Widen these once
+netsuite's actual schedule is confirmed. 25h rather than 24h on chefworks for
+the same reason — at exactly `MaxAge` you are racing the poll.
+
+Note these two conflate "our downloader broke" with "netsuite stopped fetching".
+Both are worth knowing about, but the alert doesn't tell you which.
+
+## gotcha: node's 250ms connect budget
+
+hc-ping.com resolves to hetzner IPs ~260ms from the droplet. Node's
+`autoSelectFamily` (on by default since node 20) gives each address **250ms** to
+complete its TCP handshake before abandoning it, and an abandoned attempt is
+reported as `ETIMEDOUT` with `syscall: 'connect'` — identical to a firewall
+dropping the SYN. Cost a while to find, since the host could `curl` the endpoint
+fine. `utils/healthcheck.ts` now calls `setDefaultAutoSelectFamilyAttemptTimeout`
+to raise it. The `AbortSignal.timeout` on the fetch bounds the whole request, not
+each attempt, so it never helped. The go app uses `net/http` and is unaffected.
+
 # How to deploy
 
 1. Copy over the droplet_setup.sh script into the host with scp. This will install docker and other needed things for first time setup
