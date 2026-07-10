@@ -16,7 +16,34 @@ log_info "Updating system packages and installing curl, gnupg..."
 sudo apt update
 sudo apt install -y ca-certificates curl gnupg lsb-release
 
-# 2. Install Docker Engine, containerd, and Docker Compose plugin
+# 2. Configure swap
+# DO droplets ship with no swap. On the 1GB tier the running stack leaves only
+# ~500MB available, which is less than `npm install` + `tsc` need in the node
+# builder image. With no swap to fall back on the kernel evicts page cache
+# instead, the box goes disk-bound (low CPU, high load) and sshd stops
+# responding. Swap turns that stall into a slow build.
+log_info "Configuring swap..."
+SWAPFILE="/swapfile"
+
+if sudo swapon --show | grep -q "^$SWAPFILE "; then
+    echo "Swap already active at $SWAPFILE. Skipping."
+else
+    if [ ! -f "$SWAPFILE" ]; then
+        sudo fallocate -l 2G "$SWAPFILE" || log_error "Failed to allocate $SWAPFILE."
+        sudo chmod 600 "$SWAPFILE"
+        sudo mkswap "$SWAPFILE"
+    fi
+    sudo swapon "$SWAPFILE" || log_error "Failed to enable swap on $SWAPFILE."
+fi
+
+# Persist across reboots
+if ! grep -q "^$SWAPFILE " /etc/fstab; then
+    echo "$SWAPFILE none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+fi
+
+sudo swapon --show
+
+# 3. Install Docker Engine, containerd, and Docker Compose plugin
 log_info "Installing Docker Engine and Docker Compose plugin..."
 
 # Add Docker's official GPG key:
@@ -36,7 +63,7 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plug
 log_info "Verifying Docker installation..."
 sudo docker run hello-world || log_error "Docker 'hello-world' test failed. Check Docker installation."
 
-# 3. Docker Swarm Initialization 
+# 4. Docker Swarm Initialization
 log_info "Checking Docker Swarm status and initializing if necessary..."
 if [ "$(docker info --format '{{.Swarm.ControlAvailable}}')" = "true" ]; then
     echo "This node is already a Docker Swarm manager. Skipping swarm initialization."
@@ -69,7 +96,7 @@ fi
 
 echo "Docker setup complete."
 
-# 3. Configure Firewall (UFW)
+# 5. Configure Firewall (UFW)
 log_info "Configuring UFW firewall..."
 sudo apt install -y ufw # Ensure ufw is installed
 
@@ -86,7 +113,7 @@ log_info "Enabling UFW firewall. Confirm with 'y' if prompted."
 sudo ufw enable || log_error "Failed to enable UFW."
 sudo ufw status verbose || log_error "Failed to show UFW status."
 
-# 4. Create Application's Project Directory
+# 6. Create Application's Project Directory
 log_info "Creating application project directory: $PROJECT_DIR"
 mkdir -p "$PROJECT_DIR"
 # No need for chown if the commands are run as root; root will own directories it creates.
