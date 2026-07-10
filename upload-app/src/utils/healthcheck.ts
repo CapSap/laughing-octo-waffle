@@ -1,6 +1,14 @@
+import { setDefaultAutoSelectFamilyAttemptTimeout } from "net";
+
 import { readDockerSecret } from "./readDockerSecret.js";
 
 const SECRET_NAME = "eb_stock_on_hand_file_upload_healthcheck_url";
+
+// hc-ping.com sits ~260ms from the droplet, just past node's 250ms default
+// per-address connect budget. Without this every attempt is abandoned
+// mid-handshake and reported as ETIMEDOUT, indistinguishable from a firewall
+// drop. The AbortSignal below bounds the whole request, not each attempt.
+setDefaultAutoSelectFamilyAttemptTimeout(5_000);
 
 let cachedUrl: string | null | undefined;
 

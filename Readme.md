@@ -15,7 +15,7 @@
    b. make a stagedUploads graphql request to get an upload url (shopify does not allow us to upload directly- instead we upload via a pre-signed upload URL that points to storage infrastructure associated with their CDN. Uploading to this URL sends the file data directly to the storage endpoint, bypassing Shopify’s main application servers)
    c. upload the file to the returned target upload url
    d. "register" the file so that is avaliable in our CDN
-5. do a cleanup of all files in uploads older than 30 days
+5. do a cleanup of all files in uploads older than 15 days
 
 ## Project notes + challenges
 

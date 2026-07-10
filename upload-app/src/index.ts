@@ -17,7 +17,7 @@ fs.mkdir(uploadsDir, { recursive: true }, (err) => {
   }
 });
 
-// run the cleanup func every day, remove files older than 30 days
+// run the cleanup func every day, remove files older than 15 days
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // every 24 hours
 setInterval(cleanupOldFiles, CLEANUP_INTERVAL_MS);
 
@@ -159,7 +159,14 @@ async function main() {
               }
             `;
           // Get stats for the processed file
-          const processedStats = await fs.promises.stat(processedFilePath);
+          let processedStats;
+          try {
+            processedStats = await fs.promises.stat(processedFilePath);
+          } catch (e) {
+            console.error(`Failed to stat ${processedFilePath}:`, e);
+            await pingHealthcheck(true);
+            return;
+          }
 
           const variables = {
             input: [
@@ -204,9 +211,15 @@ async function main() {
             formData.append(param.name, param.value);
           });
           // Read your file into a buffer
-          const fileBuffer = await readFile(processedFilePath);
-          const file = new File([fileBuffer], filename);
-          formData.append("file", file, "eb-soh.csv");
+          try {
+            const fileBuffer = await readFile(processedFilePath);
+            const file = new File([fileBuffer], filename);
+            formData.append("file", file, "eb-soh.csv");
+          } catch (e) {
+            console.error(`Failed to read ${processedFilePath}:`, e);
+            await pingHealthcheck(true);
+            return;
+          }
 
           try {
             const response = await fetch(uploadUrl, {
