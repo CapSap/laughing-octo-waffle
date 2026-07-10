@@ -278,6 +278,19 @@ done
 log_info "Checking stack '$STACK_NAME'..."
 run_remote "docker stack ps $STACK_NAME"
 
+# 6. Reclaim disk. Every rebuild orphans the previous :latest as an untagged
+# layer set. 24 of them had accumulated (4.8GB) before this step existed, on a
+# 24GB disk. Dangling images only:
+#   -a       would also drop node:24 / debian:bookworm, forcing a re-pull
+#   --volumes would drop shared-data, i.e. the whole upload history
+# This does discard the image `docker service rollback` would roll back to. All
+# images are :latest, so to undo a bad deploy, redeploy the previous commit.
+# Skipped in local mode: prunes on a dev box are the developer's business.
+if [ "$IS_LOCAL" = false ]; then
+    log_info "Reclaiming disk (dangling images)..."
+    run_remote "docker image prune -f" || log_error "Image prune failed (non-fatal, deploy already succeeded)."
+fi
+
 if [ "$IS_LOCAL" = true ]; then
     log_info "Local stack deployment completed successfully!"
 else

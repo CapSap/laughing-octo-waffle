@@ -210,6 +210,14 @@ fi
 log_info "Checking service '$GO_SERVICE'..."
 run_remote "docker service ps $GO_SERVICE"
 
+# Reclaim disk: the rebuild above orphaned the previous :latest as an untagged
+# layer set. Dangling only — see the longer note in deploy-stack.sh for why not
+# `-a` and never `--volumes`.
+if [ "$IS_LOCAL" = false ]; then
+    log_info "Reclaiming disk (dangling images)..."
+    run_remote "docker image prune -f" || log_error "Image prune failed (non-fatal, deploy already succeeded)."
+fi
+
 if [ "$IS_LOCAL" = true ]; then
     log_info "Local go-usa-stock deployment completed successfully!"
 else

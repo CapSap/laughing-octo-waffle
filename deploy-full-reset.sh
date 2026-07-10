@@ -251,6 +251,14 @@ run_remote "cd $PROJECT_DIR && docker stack deploy -c docker-compose.yml $STACK_
 log_info "Checking Docker Swarm services for stack '$STACK_NAME'..."
 run_remote "docker stack ps $STACK_NAME"
 
+# 6. Reclaim disk: the rebuilds above orphaned the previous :latest images as
+# untagged layer sets. Dangling only — see the longer note in deploy-stack.sh
+# for why not `-a` and never `--volumes`.
+if [ "$IS_LOCAL" = false ]; then
+    log_info "Reclaiming disk (dangling images)..."
+    run_remote "docker image prune -f" || log_error "Image prune failed (non-fatal, deploy already succeeded)."
+fi
+
 if [ "$IS_LOCAL" = true ]; then
     log_info "Local deployment completed successfully!"
 else
