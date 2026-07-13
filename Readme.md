@@ -56,11 +56,19 @@ lengthen that will shift arrival times once before restabilising.
 **sanmar-usa-stock** and **chefworks-usa-stock** only ping when netsuite pulls
 the file over SFTP *and* it is stale — `server/fs.go` calls `EnsureFresh` on
 open, and `fetcher.go` returns early without pinging if the file is younger than
-`MaxAge` (7h sanmar, 24h chefworks). So the real interval is `MaxAge` plus
+`MaxAge` (7h sanmar, 22h chefworks). So the real interval is `MaxAge` plus
 however long until netsuite next polls. The grace has to cover that poll gap:
 at 8h/2h a legitimate 7h + 4h interval would page us falsely. Widen these once
 netsuite's actual schedule is confirmed. 25h rather than 24h on chefworks for
 the same reason — at exactly `MaxAge` you are racing the poll.
+
+Update 2026-07-13: the race was real, and widening the check period didn't fix
+it because it lives in `MaxAge`, not the check config. NetSuite polls daily at
+~08:04 UTC; each refresh re-anchors the file mtime to poll time + download
+duration, so at `MaxAge: 24h` the next poll always found the file seconds
+inside MaxAge (observed age 23h59m41s) and pings landed every ~48h. Chefworks
+MaxAge is now 22h so every daily poll finds it stale; the 25h/6h check config
+is unchanged. See troubleshooting.md §2.
 
 Note these two conflate "our downloader broke" with "netsuite stopped fetching".
 Both are worth knowing about, but the alert doesn't tell you which.
@@ -121,7 +129,8 @@ Which deploy script to use:
 
 - [ ] node app: report caught upload failures to sentry with captureException (right now catch blocks only console.error + ping healthchecks /fail, so sentry issue alerts never fire for uploads. go app already does this via Notify())
 - [ ] sentry: set a real release (git sha at build time) and environment in both apps instead of hardcoded "dev" - makes regression detection ("resolved becomes unresolved") meaningful
-- [ ] betterstack: tcp port monitors on 2222 (proftpd/matrixify inbound) and 2223 (go app sftp that netsuite fetches from) - the one layer healthchecks/sentry dont cover. remember to allowlist betterstack probe ips in the DO firewall or it will always read down
+- [ ] betterstack: tcp port monitors on 2222 (proftpd/matrixify inbound) and 2223 (go app sftp that netsuite fetches from) - the one layer healthchecks/sentry dont cover. remember to allowlist betterstack probe ips in the DO firewall or it will always read down. **NO LONGER LOW PRIORITY** - on 2026-07-10 swarm dropped the port publish for 2222 and matrixify couldn't connect for 3 days while `docker service ls`, healthchecks and sentry all looked fine. a tcp monitor is the only thing that catches this (troubleshooting.md §6)
+- [ ] build images off-box and pull from a registry instead of building on the droplet. two problems, one fix: (a) the build starves the 1GB box hard enough to stall swarmkit's raft loop and hang the machine - that's what caused the 07-10 reboot and the lost port publish. swap turns the hang into a slow build but raft still shares the box with the builder. (b) `pro-ftpd:latest` / `node-app:latest` / `go-usa-stock:latest` exist in no registry, so every restart logs `pull access denied` and falls back to the local image store. the day someone runs `docker image prune -a` or the droplet is rebuilt, the services do not come back at all
 - [ ] pro-ftpd: the sftp-keys volume mounts at /etc/proftp/keys but entry.sh generates and reads the host key at /etc/proftpd/keys (missing d). the volume has never held anything, so proftpd generates a fresh host key into the container layer every time swarm recreates the container - i.e. matrixify sees a new host key after every deploy. harmless while matrixify doesn't verify it, nasty the day a stricter client points at 2222
 - [ ] unexplained: something wiped the shared-data volume around the deploy on 2026-07-08. /uploads only had ~27h of files when it should hold 15 days, and the oldest survivor was an orphaned _processed.csv with no source. cleanupOldFiles didn't do it (15 day threshold). suspect a `docker system prune -a --volumes` run by hand to free disk. if it happens again, that's the reproduction - and it means every deploy is eating the audit trail
 
