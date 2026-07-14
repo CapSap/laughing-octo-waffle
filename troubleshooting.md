@@ -136,15 +136,30 @@ Interpretation:
   watcher is dead or the container restarted and mounted late. Restart node-app (§5).
 - **`Detected new file` present but no ping received** → look for
   `healthcheck ping failed: ... ETIMEDOUT`. That's the node 250ms connect-budget
-  bug again — confirm the deployed image actually contains the
-  `setDefaultAutoSelectFamilyAttemptTimeout` fix:
+  bug again. Confirm against the **running container**, not the image tag — those
+  two drift apart and that drift is itself a known failure (§9):
 
 ```bash
-# When was the running image built? (must postdate the fix commit 897ba7b)
-docker image inspect node-app:latest --format '{{.Created}}'
-# And is the fix in the built JS?
+# Is the fix in the JS the container is actually executing?
 docker exec "$(docker ps -qf name=node-app)" grep -r 'setDefaultAutoSelectFamilyAttemptTimeout' /usr/src/app/dist/ && echo FIX PRESENT
 ```
+
+  Blank output means the ping is broken. Before rebuilding anything, check
+  whether the container is simply on a stale image — the fix may already be
+  built and sitting unused on the droplet (§9):
+
+```bash
+docker inspect --format '{{.Image}}' "$(docker ps -qf name=node-app)"  # what's running
+docker image inspect --format '{{.Id}}' node-app:latest                # what the tag says
+```
+
+  Different IDs → **§9**, and `docker service update --force sl-app-stack_node-app`
+  is the whole fix. Same IDs and no `FIX PRESENT` → the image genuinely lacks the
+  fix; check the droplet's checkout contains `897ba7b` and rebuild.
+
+  A useful timing tell: with the fix absent, the ping fails ~1s after the Shopify
+  push (8 connect attempts × the 250ms default). With the fix present a failure
+  would take ≥5s per attempt. A sub-second ETIMEDOUT means old code, full stop.
 
 ## 4. Test the ping path itself
 
@@ -533,3 +548,84 @@ present but no ping = the ping path itself (§4).
 fixed in `fetcher.go` by dropping chefworks' MaxAge below NetSuite's ~24h poll
 interval (e.g. 22h). Nothing done on 2026-07-13 touches it, and it will stay silent
 until that lands.
+
+## 9. The deploy said success but the container is running old code
+
+**Diagnosed 2026-07-14.** This hid a *fixed* node-app from production for four
+days. The healthcheck fix (`897ba7b`, committed 2026-07-10) was on master, was in
+the droplet's checkout, and was compiled into `node-app:latest` — and the running
+container was on none of it. Every `./deploy-stack.sh` reported success and
+changed nothing.
+
+### The signature
+
+Look for **all** of these at once. Any one alone means something else:
+
+- `./deploy-stack.sh` completes cleanly and prints `node-app: image unchanged —
+  leaving service alone`.
+- `docker stack ps` shows the task `Running` for far longer than the last deploy
+  (e.g. "Running 4 days ago" right after a deploy).
+- The image *has* the fix but the container does *not*:
+
+```bash
+docker inspect --format '{{.Image}}' "$(docker ps -qf name=node-app)"  # e.g. 0305d07f...
+docker image inspect --format '{{.Id}}' node-app:latest                # e.g. 999bb585...  ← differ!
+
+# the tag is fine — it's the container that's stale:
+docker run --rm --entrypoint sh node-app:latest -c \
+  "grep -r 'setDefaultAutoSelectFamilyAttemptTimeout' /usr/src/app/dist/ && echo IMAGE HAS FIX"
+```
+
+### The fix
+
+```bash
+docker service update --force sl-app-stack_node-app
+```
+
+That's all. The correct image is already on the droplet; Swarm just needs to be
+told to restart onto it. Verify with the `docker exec` grep in §3 — it should now
+print `FIX PRESENT`.
+
+### Why it happened
+
+All images are tagged `:latest` with no registry digest, so `docker stack deploy`
+cannot tell that an image's *content* changed and won't restart a service whose
+spec is untouched. `deploy-stack.sh` compensates by force-updating — but until
+2026-07-14 it decided *which* services to force by comparing the image ID
+**before the build** against **after the build**.
+
+That test answers the wrong question. It asks "did this build change the image?"
+when it needs to ask "is the container on the image we just built?". The two come
+apart like this:
+
+1. A deploy builds a good image but doesn't restart the service (spec unchanged,
+   or the restart is skipped/rejected — see §6, where tasks were rejected with
+   `node is missing network attachment`).
+2. The container keeps running the old image. The tag now points somewhere else.
+3. Every **later** deploy rebuilds from unchanged source, hits the layer cache,
+   produces a byte-identical image, sees `pre == post`, and reports "image
+   unchanged — leaving service alone."
+
+Step 3 repeats forever. The stale container is permanently invisible to the
+script, and the more faithfully you re-run the deploy the more confidently it
+tells you there's nothing to do. Note the build log looks *healthy* in this state
+— the builder stage genuinely re-runs `npm install` and `tsc`; only the final
+`COPY --from=builder /usr/src/app/dist ./dist` comes back `CACHED`, which is the
+tell that the fresh compile was identical to what's already in the image.
+
+The script now compares the **running task's image** against the freshly built one
+and forces a redeploy whenever they differ (and when it can't identify a running
+container at all). That converges no matter how the two drifted apart, so a single
+re-run of `./deploy-stack.sh` is now sufficient to repair this class of fault.
+
+### The general lesson
+
+A green deploy proves the *pipeline* ran, not that the *code* is live. When a fix
+"doesn't work", check what the container is executing before you doubt the fix:
+
+```bash
+docker exec "$(docker ps -qf name=node-app)" grep -r '<the fix>' /usr/src/app/dist/
+```
+
+Every layer above that — the commit, the branch, the checkout, the image — can be
+correct while the container is not.

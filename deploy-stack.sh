@@ -225,27 +225,31 @@ for KEY_PAIR in "${KEY_SECRETS[@]}"; do
     echo "  - Secret '$SECRET_NAME' created."
 done
 
-# 3. Rebuild all images, recording image IDs so we can tell which ones
-# actually changed. An unchanged build is a fast no-op thanks to layer cache.
+# 3. Rebuild all images, recording the resulting image ID per service. An
+# unchanged build is a fast no-op thanks to layer cache.
 SERVICE_NAMES=("pro-ftpd" "node-app" "go-usa-stock")
 BUILD_DIRS=("pro" "upload-app" "go-usa-stock")
-PRE_IMAGES=()
-POST_IMAGES=()
+BUILT_IMAGES=()
+RUNNING_IMAGES=()
 PRE_VERSIONS=()
 
 log_info "Building images..."
 for i in "${!SERVICE_NAMES[@]}"; do
     NAME="${SERVICE_NAMES[$i]}"
-    PRE_IMAGES[$i]=$(remote_capture "docker image inspect --format '{{.Id}}' ${NAME}:latest 2>/dev/null" || echo "none")
     run_remote "docker build -t ${NAME}:latest $TARGET_DIR/${BUILD_DIRS[$i]}"
-    POST_IMAGES[$i]=$(remote_capture "docker image inspect --format '{{.Id}}' ${NAME}:latest")
+    BUILT_IMAGES[$i]=$(remote_capture "docker image inspect --format '{{.Id}}' ${NAME}:latest")
 done
 
 # 4. Re-apply the stack. This is idempotent: Swarm only restarts services
 # whose compose definition changed.
+#
+# Record what each service is *actually running* right now, not just what the
+# tag pointed at before the build. These two can diverge and stay diverged: see
+# the restart decision below.
 for i in "${!SERVICE_NAMES[@]}"; do
     SVC="${STACK_NAME}_${SERVICE_NAMES[$i]}"
     PRE_VERSIONS[$i]=$(remote_capture "docker service inspect --format '{{.Version.Index}}' $SVC 2>/dev/null" || echo "")
+    RUNNING_IMAGES[$i]=$(remote_capture "cid=\$(docker ps -qf name=$SVC | head -n1); [ -n \"\$cid\" ] && docker inspect --format '{{.Image}}' \$cid 2>/dev/null || true")
 done
 
 log_info "Deploying stack '$STACK_NAME' (only changed services are updated)..."
@@ -253,24 +257,45 @@ run_remote "cd $TARGET_DIR && docker stack deploy -c docker-compose.yml $STACK_N
 || { log_error "Failed to deploy Docker stack '$STACK_NAME'."; exit 1; }
 
 # Because images are all tagged :latest, Swarm can't see when only the image
-# content changed: if a service's spec is untouched it won't restart on its
-# own. Force-update exactly those services whose image was rebuilt to a new
-# ID but whose spec the deploy left alone.
+# content changed: if a service's spec is untouched it won't restart on its own.
+# So we force-update the services that need it.
+#
+# The test is "is the running container on the image we just built?" — NOT "did
+# this build produce a different image than last time?". The difference matters.
+# A build can legitimately be a cache no-op (the source didn't change) while the
+# running container is still on some older image, because an earlier deploy built
+# a good image and never restarted the service. Comparing before-build against
+# after-build calls that "unchanged" and skips the restart — every time, forever,
+# so the stale container becomes permanently invisible. That silently kept a
+# fixed node-app out of production for four days (2026-07-10 → 07-14; the
+# healthcheck fix in 897ba7b was in the image but never in the container).
+# Comparing against what is *running* is self-healing: it converges no matter how
+# the two drifted apart.
 for i in "${!SERVICE_NAMES[@]}"; do
     NAME="${SERVICE_NAMES[$i]}"
     SVC="${STACK_NAME}_${NAME}"
 
-    if [ "${PRE_IMAGES[$i]}" == "${POST_IMAGES[$i]}" ]; then
-        echo "  - $NAME: image unchanged — leaving service alone."
+    POST_VERSION=$(remote_capture "docker service inspect --format '{{.Version.Index}}' $SVC 2>/dev/null" || echo "")
+
+    # No pre-existing service, or the deploy changed its spec: Swarm has already
+    # (re)started it and it will resolve :latest itself. Nothing to force.
+    if [ -z "${PRE_VERSIONS[$i]}" ]; then
+        echo "  - $NAME: newly created by the deploy — Swarm started it with the new image."
+        continue
+    fi
+    if [ "${PRE_VERSIONS[$i]}" != "$POST_VERSION" ]; then
+        echo "  - $NAME: service spec changed — Swarm already redeployed it with the new image."
         continue
     fi
 
-    POST_VERSION=$(remote_capture "docker service inspect --format '{{.Version.Index}}' $SVC 2>/dev/null" || echo "")
-    if [ -n "${PRE_VERSIONS[$i]}" ] && [ "${PRE_VERSIONS[$i]}" == "$POST_VERSION" ]; then
-        log_info "$NAME: new image but unchanged spec — forcing redeploy..."
-        run_remote "docker service update --force $SVC"
+    # Spec untouched. Restart iff what's running isn't what we just built. An
+    # empty RUNNING_IMAGES means we couldn't identify a container (task down,
+    # scaled to 0) — force rather than guess, so we always converge.
+    if [ -n "${RUNNING_IMAGES[$i]}" ] && [ "${RUNNING_IMAGES[$i]}" == "${BUILT_IMAGES[$i]}" ]; then
+        echo "  - $NAME: already running the current image — leaving service alone."
     else
-        echo "  - $NAME: service spec changed — Swarm already redeployed it with the new image."
+        log_info "$NAME: running image differs from the built image — forcing redeploy..."
+        run_remote "docker service update --force $SVC"
     fi
 done
 
