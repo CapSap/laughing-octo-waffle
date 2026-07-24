@@ -271,25 +271,28 @@ run_remote "cd $TARGET_DIR && docker stack deploy -c docker-compose.yml $STACK_N
 # healthcheck fix in 897ba7b was in the image but never in the container).
 # Comparing against what is *running* is self-healing: it converges no matter how
 # the two drifted apart.
+#
+# Version.Index deltas are just as useless as build-cache deltas: `docker stack
+# deploy` bumps the index on every re-apply even when it restarts nothing
+# (observed 2026-07-15: go-usa-stock's index bumped, "Updating service" printed,
+# and the task kept running a 5-day-old image — the old "spec changed, Swarm
+# already redeployed it" skip here left the chefworks fix undeployed). So the
+# only skip besides "already on the built image" is a service the deploy just
+# created. If a real spec change made Swarm restart the task itself, the check
+# below at worst forces one redundant restart — that beats a stale container.
 for i in "${!SERVICE_NAMES[@]}"; do
     NAME="${SERVICE_NAMES[$i]}"
     SVC="${STACK_NAME}_${NAME}"
 
-    POST_VERSION=$(remote_capture "docker service inspect --format '{{.Version.Index}}' $SVC 2>/dev/null" || echo "")
-
-    # No pre-existing service, or the deploy changed its spec: Swarm has already
-    # (re)started it and it will resolve :latest itself. Nothing to force.
+    # No pre-existing service: Swarm has just created it and it resolved
+    # :latest itself. Nothing to force.
     if [ -z "${PRE_VERSIONS[$i]}" ]; then
         echo "  - $NAME: newly created by the deploy — Swarm started it with the new image."
         continue
     fi
-    if [ "${PRE_VERSIONS[$i]}" != "$POST_VERSION" ]; then
-        echo "  - $NAME: service spec changed — Swarm already redeployed it with the new image."
-        continue
-    fi
 
-    # Spec untouched. Restart iff what's running isn't what we just built. An
-    # empty RUNNING_IMAGES means we couldn't identify a container (task down,
+    # Restart iff what's running isn't what we just built. An empty
+    # RUNNING_IMAGES means we couldn't identify a container (task down,
     # scaled to 0) — force rather than guess, so we always converge.
     if [ -n "${RUNNING_IMAGES[$i]}" ] && [ "${RUNNING_IMAGES[$i]}" == "${BUILT_IMAGES[$i]}" ]; then
         echo "  - $NAME: already running the current image — leaving service alone."
