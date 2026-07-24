@@ -189,20 +189,33 @@ done
 log_info "Building go-usa-stock image..."
 run_remote "docker build -t go-usa-stock:latest $TARGET_DIR/go-usa-stock"
 
-# 4. Re-apply the stack. This is idempotent: Swarm only restarts services
-# whose definition changed, so pro-ftpd and node-app are left alone.
-PRE_VERSION=$(remote_capture "docker service inspect --format '{{.Version.Index}}' $GO_SERVICE 2>/dev/null" || echo "")
+# 4. Re-apply the stack, then make sure the service is actually running the
+# image we just built.
+#
+# The image is tagged :latest with no registry digest, so Swarm cannot see
+# image-content changes — and `docker stack deploy` bumps the service's
+# Version.Index even when it restarts nothing (observed 2026-07-15: "Updating
+# service" printed and the version bumped while the task kept running a
+# 5-day-old image; the old version-index guard here concluded "Swarm handled
+# it" and skipped the restart). Version deltas prove nothing. The only
+# reliable test is "is the running container on the image we just built?" —
+# same convergence rule as deploy-stack.sh. If the compose spec really did
+# change, Swarm restarts the task itself and this at worst forces one
+# redundant restart; that beats silently leaving a stale container running.
+SERVICE_EXISTED=$(remote_capture "docker service inspect $GO_SERVICE >/dev/null 2>&1 && echo yes || echo no")
+BUILT_IMAGE=$(remote_capture "docker image inspect --format '{{.Id}}' go-usa-stock:latest")
+RUNNING_IMAGE=$(remote_capture "cid=\$(docker ps -qf name=$GO_SERVICE | head -n1); [ -n \"\$cid\" ] && docker inspect --format '{{.Image}}' \$cid 2>/dev/null || true")
 
 log_info "Deploying stack '$STACK_NAME' (only changed services are updated)..."
 run_remote "cd $TARGET_DIR && docker stack deploy -c docker-compose.yml $STACK_NAME" \
 || { log_error "Failed to deploy Docker stack '$STACK_NAME'."; exit 1; }
 
-# If the service spec didn't change (e.g. only the Go code changed and the
-# image was rebuilt under the same :latest tag), Swarm won't restart the
-# service on its own — force an update so it picks up the new local image.
-POST_VERSION=$(remote_capture "docker service inspect --format '{{.Version.Index}}' $GO_SERVICE 2>/dev/null" || echo "")
-if [ -n "$PRE_VERSION" ] && [ "$PRE_VERSION" == "$POST_VERSION" ]; then
-    log_info "Service spec unchanged — forcing $GO_SERVICE to redeploy with the rebuilt image..."
+if [ "$SERVICE_EXISTED" == "no" ]; then
+    echo "  - go-usa-stock: newly created by the deploy — Swarm started it with the new image."
+elif [ -n "$RUNNING_IMAGE" ] && [ "$RUNNING_IMAGE" == "$BUILT_IMAGE" ]; then
+    echo "  - go-usa-stock: already running the freshly built image — leaving service alone."
+else
+    log_info "Running image differs from the built image — forcing $GO_SERVICE to redeploy..."
     run_remote "docker service update --force $GO_SERVICE"
 fi
 
