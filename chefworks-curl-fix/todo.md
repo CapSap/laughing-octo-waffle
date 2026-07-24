@@ -15,7 +15,7 @@ Code changes are in the `go-usa-stock/` submodule.
 
 ## Phase 1 — Code (submodule)
 
-### - [ ] Unit 1 — Rewrite `DlChefworks` to use curl
+### - [x] Unit 1 — Rewrite `DlChefworks` to use curl
 - Edit `go-usa-stock/fetcher/chefworks.go` to match SPEC §2a.
 - Replace the whole `ftp.Dial`/`DialWithExplicitTLS`/`ClientSessionCache` block
   and the `Retr`/`io.Copy` transfer with the `exec.CommandContext("curl", …)` call.
@@ -25,33 +25,52 @@ Code changes are in the `go-usa-stock/` submodule.
 - Error must carry curl's trimmed stderr + wrapped exec error (SPEC §4).
 - **Acceptance:** file compiles in isolation (checked in Unit 3); invariants
   SPEC §3 present by inspection; no `tls`/`ftp`/`io` imports remain in the file.
-- **Notes:**
+- **Notes:** Rewrote to the SPEC §2a reference exactly. Imports now bytes/context/
+  fmt/os/os/exec/path/filepath/strings/time — no tls/io/jlaffaye. All 8 invariants
+  present by inspection; error wraps exec err (`%w`) + trimmed curl stderr. Compile
+  verified in Unit 3.
 
-### - [ ] Unit 2 — Switch Dockerfile final stage to alpine + curl
+### - [x] Unit 2 — Switch Dockerfile final stage to alpine + curl
 - Edit `go-usa-stock/Dockerfile` final stage per SPEC §2b:
   `FROM alpine:latest`, `RUN apk add --no-cache curl ca-certificates`, keep the
   app binary + `authorised` copies, drop the manual `ca-certificates.crt` COPY and
   the stray final-stage `ENV CGO_ENABLED=0`. Builder stage unchanged.
 - **Acceptance:** final stage installs curl via apk; no leftover scratch-only lines.
-- **Notes:**
+- **Notes:** REVISED base image after Unit 5 testing. Initially `alpine:latest` +
+  `apk add curl ca-certificates`, but alpine's curl 8.21/OpenSSL 3.5.7 reproduced
+  the 425 (see Unit 5). Final stage is now **`debian:12-slim`** +
+  `apt-get install --no-install-recommends curl ca-certificates` (curl 7.88/OpenSSL
+  3.0.20, proven working on the droplet). Dropped `FROM scratch`, the manual
+  ca-certificates.crt COPY, and the stray `ENV CGO_ENABLED=0`. Kept app binary +
+  `authorised` copies. Builder stage (CGO_ENABLED=0 static build) untouched — runs
+  fine on debian/glibc. Base image documented + pinned in the Dockerfile with the
+  OpenSSL-3.5.x rationale so nobody re-breaks it by moving to alpine/:latest.
 
-### - [ ] Unit 3 — Compile & tidy
+### - [x] Unit 3 — Compile & tidy
 - In `go-usa-stock/`: run `go build ./...` then `go vet ./...` then `go mod tidy`.
 - Confirm `go.mod`/`go.sum` no longer list `github.com/jlaffaye/ftp`.
 - **Acceptance:** build + vet clean; `grep jlaffaye go.mod` returns nothing.
-- **Notes:**
+- **Notes:** build + vet + tidy all clean (GOCACHE redirected to scratch — the
+  default ~/.cache/go-build is read-only in this sandbox). `grep jlaffaye go.mod
+  go.sum` → none. tidy also promoted `stretchr/testify` to an explicit `// indirect`
+  entry (already a transitive test dep in go.sum; build stays consistent). Changed
+  files in submodule: Dockerfile, fetcher/chefworks.go, go.mod, go.sum.
 
-### - [ ] Unit 4 — (Optional, low-priority) remove the go:debug directive
+### - [x] Unit 4 — (Optional, low-priority) remove the go:debug directive
 - In `go-usa-stock/`, `grep -rn "x509\|ParseCertificate\|tls.X509" --include=*.go`
   to confirm no Go code still parses the chefworks cert.
 - If clean, remove `//go:debug x509negativeserial=1` and its comment from `main.go`.
 - If any doubt, **leave it** and note why. It is harmless.
 - **Acceptance:** either removed with grep evidence, or explicitly deferred with reason.
-- **Notes:**
+- **Notes:** REMOVED. grep for `x509|ParseCertificate|tls.X509|crypto/tls|crypto/x509`
+  across all *.go found only the directive itself + a comment mention in chefworks.go
+  — no code parses the cert (sanmar is SSH/SFTP, not x509; curl --insecure now owns
+  the chefworks TLS). Removed directive + its 3-line comment from main.go; `go build
+  ./...` still clean.
 
 ## Phase 2 — Local smoke test (recommended, no production impact)
 
-### - [ ] Unit 5 — Build the alpine image locally
+### - [x] Unit 5 — Build the image locally (alpine → debian:12-slim)
 - Read `deploy-go.sh` first. Run `./deploy-go.sh --local` (builds from the working
   tree into stack `local-app-stack`, no git pull).
 - Verify curl is in the image: `docker exec <local container> sh -c 'curl --version | head -1'`
@@ -64,11 +83,46 @@ Code changes are in the `go-usa-stock/` submodule.
 - Tear down the local stack when done.
 - **Acceptance:** image builds; curl present with FTPS; download OR failure-message
   behavior observed (whichever is reachable locally), noted explicitly.
-- **Notes:**
+- **Notes:** Docker-based smoke test NOT runnable here — Docker Desktop's WSL
+  integration is not enabled for this distro (`docker` → "could not be found in this
+  WSL 2 distro"), so no local image build / stack run. Per this unit's fallback,
+  deferring the alpine image build + live download to Unit 9 on the droplet.
+  Validated what was reachable: (a) local curl 8.5.0 is OpenSSL-backed with FTPS
+  (same backend family as alpine's curl pkg); (b) SPEC §4 error surfacing confirmed
+  via standalone repro of the exec+error path — output:
+  `curl download of ftp://127.0.0.1:1/CWI_INVENTORY.csv failed: exit status 7:
+  curl: (7) Failed to connect...`, i.e. wrapped exec status + curl `(NN)` stderr,
+  matching the §4 example shape (`exit status 78: curl: (78) RETR response: 425`).
+
+  UPDATE — user ran the full local stack (`./deploy-go.sh --local`) and it CAUGHT A
+  REAL BUG the plan's premise missed: the curl build on **alpine:latest** (curl
+  8.21 / OpenSSL 3.5.7) reproduced the SAME 425 ("RETR response: 425") the Go code
+  had. SPEC §4 error surfacing worked perfectly through the retry chain
+  (`…failed: exit status 19: curl: (19) RETR response: 425`), and the 0-byte guard
+  held (stale CWI file not overwritten). Root cause isolated on the droplet (same
+  network as prod, real creds), testing curl in throwaway containers:
+    · alpine:latest      curl 8.21.0 / OpenSSL 3.5.7  → 425 (exit 19)  ❌
+    · debian:stable-slim curl 8.14.1 / OpenSSL 3.5.6  → (implied same family) ❌
+    · debian:12-slim     curl 7.88.1 / OpenSSL 3.0.20 → 305,138 bytes (exit 0) ✅
+    · ubuntu:24.04       curl 8.5.0  / OpenSSL 3.0.13 → 305,138 bytes (exit 0) ✅
+    · droplet system     curl 8.9.1  / OpenSSL 3.3.1  → 305,138 bytes (exit 0) ✅
+  Conclusion: OpenSSL **3.5.x** broke FTPS data-connection TLS session reuse
+  (require_ssl_reuse); 3.0.x–3.3.x work. Fix = Dockerfile base image alpine →
+  `debian:12-slim` (Unit 2 revised). This is NOT reopening curl-vs-Go: curl is
+  still the transfer; only the container's curl/OpenSSL build had to change. Full
+  rebuild + live-download re-verify with debian:12-slim still PENDING (droplet
+  container test already proves the exact curl/OpenSSL combo downloads the file).
+
+  RESOLVED — full local rebuild on debian:12-slim: multi-stage image built,
+  `curl 7.88.1 / OpenSSL 3.0.20`, and DlChefworks logged `Downloaded
+  CWI_INVENTORY.csv (305138 bytes) … total time 3.6s` on the LAPTOP too — so the
+  earlier 425 was purely the OpenSSL 3.5.x version, never the network. File landed
+  fresh + non-zero in /app/downloads. Unit 5 acceptance MET; fix validated
+  end-to-end (build + curl + live download + atomic publish).
 
 ## Phase 3 — Commit & push BOTH repos  ⚠️ confirm with user first
 
-### - [ ] Unit 6 — Commit submodule, then bump parent pointer
+### - [ ] Unit 6 — Commit submodule, then bump parent pointer  (COMMITTED LOCALLY; PUSH/MERGE PENDING — user-owned)
 - **Show the full diff and get the user's explicit OK before committing.**
 - In `go-usa-stock/` (branch `fix/chefworks-ftps-tls-resumption`): commit the
   chefworks.go + Dockerfile + go.mod/go.sum (+ main.go if Unit 4 done), then push.
@@ -77,7 +131,23 @@ Code changes are in the `go-usa-stock/` submodule.
 - **Acceptance:** both repos pushed; `git submodule status` shows the parent
   pointing at the new submodule commit; both are on the branch `deploy-go.sh` pulls
   (`GIT_BRANCH` in `deploy.env`).
-- **Notes:**
+- **Notes:** Diff shown + approved. Committed on branch
+  `fix/chefworks-ftps-tls-resumption` in BOTH repos:
+  · submodule `go-usa-stock` @ `2bbda0d` (curl rewrite + alpine Dockerfile + main.go
+    directive removal + go.mod/go.sum tidy).
+  · parent `do-droplet` @ `1345b0f` — records submodule pointer = 2bbda0d (+ todo.md).
+  NOT pushed (user: "you dont need to push") and NOT on the deploy branch yet, so
+  acceptance is NOT fully met — box left unticked. REMAINING before deploy is
+  possible (all user-owned):
+    1. Fix push access: GitHub rejects `~/.ssh/charlie-eb-github` (Permission denied
+       (publickey)) — submodule remote `Charlie-EB/usa-stock` can't be pushed from
+       here. Root remote is `CapSap/laughing-octo-waffle` (github.com).
+    2. Submodule: user will merge `fix/chefworks-ftps-tls-resumption` → `main` and
+       push (deploy fetches the recorded SHA; it must be reachable on the remote).
+    3. Parent: land the pointer-bump on `master` (merge the feature branch) and push
+       — `deploy.env GIT_BRANCH=master`, so the droplet only pulls `master`.
+  Aside: user separately committed the fix docs + a deploy-go.sh convergence fix
+  directly onto root `master` (30a9b8c, 197ee5d) during this unit.
 
 ## Phase 4 — Deploy  ⚠️ confirm with user first
 

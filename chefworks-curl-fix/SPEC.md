@@ -129,21 +129,33 @@ func DlChefworks() error {
 
 ### 2b. `go-usa-stock/Dockerfile` (final stage only; builder stage unchanged)
 
+> ⚠️ **Base image is NOT alpine.** The original plan said `alpine:latest`, but
+> local + on-droplet testing (2026-07-24) proved alpine's `curl 8.21 / OpenSSL
+> 3.5.7` reproduces the *exact* 425 ("TLS session of data connection not
+> resumed") the Go path had — OpenSSL 3.5.x broke FTPS data-connection TLS
+> session reuse. `debian:stable-slim` is also 3.5.x and also fails. OpenSSL
+> **3.0.x** works. Final image = **`debian:12-slim`** (curl 7.88 / OpenSSL
+> 3.0.20; downloaded 305,138 bytes in the droplet test). `ubuntu:24.04` (curl
+> 8.5 / OpenSSL 3.0.13) is an equivalent alternative. Keep the tag **pinned** to
+> a 3.0.x-era release; do not use a rolling tag that can drift into 3.5.x.
+
 ```dockerfile
 # --- STAGE 2: PRODUCTION ---
-FROM alpine:latest
+FROM debian:12-slim
 WORKDIR /
-RUN apk add --no-cache curl ca-certificates
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /go/bin/app /usr/local/bin/app
 COPY --from=builder /usr/src/app/authorised /authorised
 CMD ["/usr/local/bin/app"]
 ```
 
-- `apk add ca-certificates` provides the CA bundle at `/etc/ssl/certs/` that the
-  Go binary needs for its HTTPS calls (healthchecks.io, Sentry) — so the old
-  manual `COPY … ca-certificates.crt` line is **removed**.
+- `apt-get install ca-certificates` provides the CA bundle at `/etc/ssl/certs/`
+  that the Go binary needs for its HTTPS calls (healthchecks.io, Sentry) — so the
+  old manual `COPY … ca-certificates.crt` line is **removed**.
 - The builder stage still uses `CGO_ENABLED=0`; a pure-Go static binary runs fine
-  on alpine/musl. Keep `authorised` (SFTP authorized-keys dir). Drop the stray
+  on debian/glibc. Keep `authorised` (SFTP authorized-keys dir). Drop the stray
   `ENV CGO_ENABLED=0` on the final stage (meaningless at runtime).
 
 ### 2c. `go-usa-stock/main.go` (optional, low-priority cleanup)
